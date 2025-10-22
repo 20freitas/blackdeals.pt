@@ -63,7 +63,7 @@ export default function CriarContaPage() {
       if (signUpError) throw signUpError;
 
       if (data.user) {
-        setSuccess("Conta criada com sucesso! Verifique o seu email para confirmar.");
+        setSuccess("Conta criada com sucesso!");
         setFormData({
           firstName: "",
           lastName: "",
