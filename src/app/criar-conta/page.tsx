@@ -85,14 +85,16 @@ export default function CriarContaPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
       <Navbar />
-      <main className="max-w-md mx-auto px-4 py-16">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-3xl font-bold text-center mb-2">Criar Conta</h1>
-          <p className="text-gray-600 text-center mb-8">
-            Preencha os dados para criar a sua conta
-          </p>
+      <main className="max-w-md mx-auto px-4 py-12">
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/50 p-8 md:p-10">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Criar Conta</h1>
+            <p className="text-gray-500">
+              Junte-se a nós e comece já
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
@@ -186,16 +188,35 @@ export default function CriarContaPage() {
 
             <Button
               type="submit"
-              className="w-full bg-black hover:bg-gray-800 text-white h-11 text-base font-semibold"
+              className="w-full bg-gradient-to-r from-gray-900 to-black hover:from-black hover:to-gray-900 text-white h-12 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
               disabled={loading}
             >
-              {loading ? "Criando conta..." : "Criar Conta"}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Criando conta...
+                </span>
+              ) : (
+                "Criar Conta"
+              )}
             </Button>
           </form>
 
-          <p className="text-center text-sm text-gray-600 mt-6">
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-gray-500">ou</span>
+            </div>
+          </div>
+
+          <p className="text-center text-sm text-gray-600">
             Já tem uma conta?{" "}
-            <Link href="/login" className="text-black font-semibold hover:underline">
+            <Link href="/login" className="text-black font-semibold hover:underline transition-colors">
               Fazer login
             </Link>
           </p>
