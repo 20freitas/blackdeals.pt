@@ -2,11 +2,25 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User } from "lucide-react";
+import { ShoppingCart, User, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function Navbar() {
   const { user, loading } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      (async () => {
+        const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+        setIsAdmin(data?.role === 'admin');
+      })();
+    } else {
+      setIsAdmin(false);
+    }
+  }, [user]);
 
   return (
     <nav className="border-b border-gray-200 bg-white sticky top-0 z-50 shadow-sm">
@@ -50,12 +64,24 @@ export default function Navbar() {
               <>
                 {user ? (
                   // Usuário autenticado - mostrar ícone de perfil
-                  <Link 
-                    href="/perfil" 
-                    className="hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-full"
-                  >
-                    <User className="h-5 w-5" />
-                  </Link>
+                  <>
+                    {isAdmin && (
+                      <Link 
+                        href="/dashboard" 
+                        className="hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-full"
+                        title="Dashboard"
+                      >
+                        <LayoutDashboard className="h-5 w-5" />
+                      </Link>
+                    )}
+                    <Link 
+                      href="/perfil" 
+                      className="hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-full"
+                      title="Perfil"
+                    >
+                      <User className="h-5 w-5" />
+                    </Link>
+                  </>
                 ) : (
                   // Usuário não autenticado - mostrar botões de login/criar conta
                   <>
