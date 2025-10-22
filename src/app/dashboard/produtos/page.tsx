@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import DashboardLayout from "@/components/DashboardLayout";
-import { LayoutDashboard } from "lucide-react";
+import { Package } from "lucide-react";
 
-export default function DashboardPage() {
+export default function ProdutosPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
@@ -42,23 +42,12 @@ export default function DashboardPage() {
     <DashboardLayout>
         <div className="p-8">
           <div className="flex items-center gap-3 mb-6">
-            <LayoutDashboard className="h-8 w-8" />
-            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <Package className="h-8 w-8" />
+            <h1 className="text-3xl font-bold">Produtos</h1>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-gray-500 text-sm font-medium mb-2">Total Produtos</h3>
-              <p className="text-3xl font-bold">0</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-gray-500 text-sm font-medium mb-2">Encomendas</h3>
-              <p className="text-3xl font-bold">0</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-gray-500 text-sm font-medium mb-2">Utilizadores</h3>
-              <p className="text-3xl font-bold">0</p>
-            </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <p className="text-gray-600">Gestão de produtos em desenvolvimento...</p>
           </div>
         </div>
       </DashboardLayout>
