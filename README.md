@@ -67,6 +67,58 @@ create policy "Profiles: update own" on profiles for update using (auth.uid() = 
 -- Ajuste as políticas conforme necessário (por exemplo, permitir que admins leiam todos os perfis).
 ```
 
+## Supabase: tabela `products` (produtos)
+
+Tabela para armazenar os produtos da loja:
+
+```sql
+create table products (
+	id uuid default gen_random_uuid() primary key,
+	name text not null,
+	description text,
+	image_url text,
+	price numeric(10, 2) not null,
+	supplier_price numeric(10, 2),
+	discount numeric(5, 2) default 0,
+	final_price numeric(10, 2),
+	stock integer default 0,
+	available_units integer default 0,
+	variants jsonb, -- Array de variantes: [{ name: "Tamanho", options: ["S", "M", "L"] }, { name: "Cor", options: ["Vermelho", "Azul"] }]
+	created_at timestamptz default now(),
+	updated_at timestamptz default now()
+);
+
+-- RLS: Permitir leitura para todos, escrita apenas para admins
+alter table products enable row level security;
+
+create policy "Products: select all" on products for select using (true);
+create policy "Products: insert admin" on products for insert with check (
+	exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+);
+create policy "Products: update admin" on products for update using (
+	exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+);
+create policy "Products: delete admin" on products for delete using (
+	exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+);
+```
+
+Notas:
+- As variantes são guardadas em formato JSON para permitir flexibilidade
+- O `final_price` é calculado automaticamente com base no preço e desconto
+
+## Supabase: Storage para imagens de produtos
+
+Crie um bucket público para as imagens dos produtos:
+
+1. No painel do Supabase, vá a **Storage**
+2. Clique em **Create bucket**
+3. Nome: `product-images`
+4. Marque como **Public bucket**
+5. Clique em **Save**
+
+As imagens serão carregadas automaticamente através do upload no formulário de produtos.
+
 Notas:
 - O código do frontend usa `supabase.from('profiles').upsert({...})` com `id = auth.user.id`. Garanta que a coluna `id` é a mesma `uuid` do `auth.users`.
 - Durante o registo guardamos alguns campos em `user_metadata` e também tentamos criar/atualizar a linha em `profiles` para facilitar futuros envios/encomendas.
