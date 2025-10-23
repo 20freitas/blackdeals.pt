@@ -72,7 +72,9 @@ export default function UtilizadoresPage() {
       .order("created_at", { ascending: false });
 
     if (data && !error) {
+      console.log("Perfis carregados:", data);
       setProfiles(data);
+      // Forçar mostrar todos os perfis, sem filtro
       setFilteredProfiles(data);
     }
     setLoadingProfiles(false);

@@ -65,6 +65,7 @@ export default function CriarContaPage() {
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,
+            role: "user",
           },
         },
       });
