@@ -14,8 +14,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BlackDeals",
+  title: "BlackDeals - Os Melhores Produtos aos Melhores Preços",
   description: "Descobre ofertas exclusivas com até 70% de desconto. Envio grátis e entrega rápida em toda Portugal.",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=5",
+  themeColor: "#000000",
+  openGraph: {
+    type: "website",
+    locale: "pt_PT",
+    url: "https://blackdeals.pt",
+    title: "BlackDeals - Os Melhores Produtos aos Melhores Preços",
+    description: "Descobre ofertas exclusivas com até 70% de desconto. Envio grátis e entrega rápida em toda Portugal.",
+    siteName: "BlackDeals",
+  },
 };
 
 export default function RootLayout({
@@ -24,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="pt">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
