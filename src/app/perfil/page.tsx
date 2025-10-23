@@ -113,17 +113,11 @@ export default function PerfilPage() {
           icon: Clock,
           color: "text-yellow-600 bg-yellow-50 border-yellow-200",
         };
-      case "processing":
-        return {
-          label: "A Processar",
-          icon: Package,
-          color: "text-blue-600 bg-blue-50 border-blue-200",
-        };
       case "shipped":
         return {
           label: "Enviada",
           icon: Truck,
-          color: "text-purple-600 bg-purple-50 border-purple-200",
+          color: "text-blue-600 bg-blue-50 border-blue-200",
         };
       case "delivered":
         return {

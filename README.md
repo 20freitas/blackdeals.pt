@@ -130,7 +130,7 @@ create table orders (
 	user_id uuid references auth.users(id) on delete cascade not null,
 	order_code text unique not null,
 	total numeric(10, 2) not null,
-	status text default 'pending', -- pending, processing, shipped, delivered, cancelled
+	status text default 'pending', -- pending, shipped, delivered, cancelled
 	shipping_name text not null,
 	shipping_email text not null,
 	shipping_phone text not null,
@@ -166,6 +166,9 @@ create policy "Orders: select admin" on orders for select using (
 create policy "Orders: update admin" on orders for update using (
 	exists (select 1 from profiles where id = auth.uid() and role = 'admin')
 );
+create policy "Orders: delete admin" on orders for delete using (
+	exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+);
 
 -- Policies para order_items
 create policy "Order items: select own" on order_items for select using (
@@ -175,6 +178,12 @@ create policy "Order items: insert own" on order_items for insert with check (
 	exists (select 1 from orders where id = order_items.order_id and user_id = auth.uid())
 );
 create policy "Order items: select admin" on order_items for select using (
+	exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+);
+create policy "Order items: update admin" on order_items for update using (
+	exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+);
+create policy "Order items: delete admin" on order_items for delete using (
 	exists (select 1 from profiles where id = auth.uid() and role = 'admin')
 );
 ```
