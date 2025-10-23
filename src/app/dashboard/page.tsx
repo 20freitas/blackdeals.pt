@@ -85,12 +85,15 @@ export default function DashboardPage() {
 
       if (!orders) return;
 
-      // Calculate stats
-      const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+      // Exclude cancelled orders from dashboard aggregates
+      const activeOrders = orders.filter((o: any) => o.status !== "cancelled");
+
+      // Calculate stats using only active orders
+      const totalRevenue = activeOrders.reduce((sum: number, order: any) => sum + (order.total || 0), 0);
       
       // Calculate profit (revenue - supplier costs)
       let totalProfit = 0;
-      orders.forEach(order => {
+      activeOrders.forEach((order: any) => {
         if (order.order_items) {
           order.order_items.forEach((item: any) => {
             const supplierCost = item.products?.supplier_price || 0;
@@ -100,14 +103,15 @@ export default function DashboardPage() {
         }
       });
 
-      const completedOrders = orders.filter(o => o.status === "delivered");
-      const pendingOrders = orders.filter(o => o.status === "pending");
+      const completedOrders = activeOrders.filter((o: any) => o.status === "delivered");
+      const pendingOrders = activeOrders.filter((o: any) => o.status === "pending");
 
-      // Get recent orders (last 5)
-      const recentOrders = orders
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      // Get recent active orders (last 5)
+      const recentOrders = activeOrders
+        .slice() // copy
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 5)
-        .map(o => ({
+        .map((o: any) => ({
           id: o.id,
           order_code: o.order_code,
           total: o.total,
@@ -116,9 +120,9 @@ export default function DashboardPage() {
           shipping_name: o.shipping_name,
         }));
 
-      // Calculate top products by sales
+      // Calculate top products by sales from active orders
       const productSales: Record<string, { name: string; sales: number; revenue: number }> = {};
-      orders.forEach(order => {
+      activeOrders.forEach((order: any) => {
         if (order.order_items) {
           order.order_items.forEach((item: any) => {
             const productId = item.product_id;
@@ -139,12 +143,12 @@ export default function DashboardPage() {
       setStats({
         totalRevenue,
         totalProfit,
-        totalOrders: orders.length,
+        totalOrders: activeOrders.length,
         totalProducts: products?.length || 0,
         totalUsers: profiles?.length || 0,
         pendingOrders: pendingOrders.length,
         completedOrders: completedOrders.length,
-        averageOrderValue: orders.length > 0 ? totalRevenue / orders.length : 0,
+        averageOrderValue: activeOrders.length > 0 ? totalRevenue / activeOrders.length : 0,
         recentOrders,
         topProducts,
       });
