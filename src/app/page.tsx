@@ -16,6 +16,7 @@ import {
   Star
 } from "lucide-react";
 import HeroCarousel from "@/components/HeroCarousel";
+// partners strip handled inline in this file
 
 export default function Home() {
   const router = useRouter();
@@ -121,10 +122,10 @@ export default function Home() {
         </div>
       </section>
 
-  {/* Carousel Section (placeholder images 1080x1350) */}
+    {/* Carousel Section (placeholder images 1080x1350) */}
   <HeroCarousel />
 
-      {/* Benefits Section */}
+    {/* Benefits Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -221,6 +222,25 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Partners Banner (full-width) */}
+      <section className="py-8 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-2xl p-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-6">Parceiros verificados</h2>
+            <div className="flex items-center justify-center gap-12 flex-nowrap">
+              {[
+                { src: '/trustpilot.png', cls: 'h-10 md:h-12' },
+                { src: '/google.png', cls: 'h-10 md:h-12' },
+                { src: '/facebook.svg', cls: 'h-8 md:h-10' },
+              ].map((p, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={i} src={p.src} alt="Parceiro" className={`${p.cls} object-contain mx-6`} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Social Proof */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -239,7 +259,6 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Testimonial 1 */}
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <div className="flex items-center gap-1 mb-4">
                 {[...Array(5)].map((_, i) => (
@@ -283,6 +302,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+  {/* Stats Section */}
 
       {/* Stats Section */}
       <section className="py-20 bg-black text-white">

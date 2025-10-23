@@ -135,3 +135,32 @@
     @apply touch-manipulation;
   }
 }
+
+/* Partners strip marquee animation */
+@keyframes partners-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.partners-strip .partners-track {
+  display: flex;
+  gap: 3rem;
+  align-items: center;
+  width: max-content;
+  animation: partners-scroll 18s linear infinite;
+}
+
+.partners-strip:hover .partners-track {
+  animation-play-state: paused;
+}
+
+.partners-strip .partners-item img {
+  display: block;
+}
+
+/* Ensure the static partners row doesn't wrap */
+.partners-strip .partners-row {
+  white-space: nowrap;
+  overflow-x: hidden;
+}
+
