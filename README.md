@@ -119,6 +119,66 @@ Crie um bucket público para as imagens dos produtos:
 
 As imagens serão carregadas automaticamente através do upload no formulário de produtos.
 
+## Supabase: tabelas `orders` e `order_items` (encomendas)
+
+Tabelas para armazenar as encomendas:
+
+```sql
+-- Tabela de encomendas
+create table orders (
+	id uuid default gen_random_uuid() primary key,
+	user_id uuid references auth.users(id) on delete cascade not null,
+	order_code text unique not null,
+	total numeric(10, 2) not null,
+	status text default 'pending', -- pending, processing, shipped, delivered, cancelled
+	shipping_name text not null,
+	shipping_email text not null,
+	shipping_phone text not null,
+	shipping_address text not null,
+	shipping_city text not null,
+	shipping_postal_code text not null,
+	shipping_country text default 'Portugal',
+	created_at timestamptz default now(),
+	updated_at timestamptz default now()
+);
+
+-- Tabela de items da encomenda
+create table order_items (
+	id uuid default gen_random_uuid() primary key,
+	order_id uuid references orders(id) on delete cascade not null,
+	product_id uuid references products(id) on delete set null,
+	quantity integer not null,
+	price numeric(10, 2) not null,
+	variants jsonb, -- Variantes selecionadas: { "Tamanho": "M", "Cor": "Preto" }
+	created_at timestamptz default now()
+);
+
+-- RLS: Permitir que users vejam apenas suas encomendas
+alter table orders enable row level security;
+alter table order_items enable row level security;
+
+-- Policies para orders
+create policy "Orders: select own" on orders for select using (auth.uid() = user_id);
+create policy "Orders: insert own" on orders for insert with check (auth.uid() = user_id);
+create policy "Orders: select admin" on orders for select using (
+	exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+);
+create policy "Orders: update admin" on orders for update using (
+	exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+);
+
+-- Policies para order_items
+create policy "Order items: select own" on order_items for select using (
+	exists (select 1 from orders where id = order_items.order_id and user_id = auth.uid())
+);
+create policy "Order items: insert own" on order_items for insert with check (
+	exists (select 1 from orders where id = order_items.order_id and user_id = auth.uid())
+);
+create policy "Order items: select admin" on order_items for select using (
+	exists (select 1 from profiles where id = auth.uid() and role = 'admin')
+);
+```
+
 Notas:
 - O código do frontend usa `supabase.from('profiles').upsert({...})` com `id = auth.user.id`. Garanta que a coluna `id` é a mesma `uuid` do `auth.users`.
 - Durante o registo guardamos alguns campos em `user_metadata` e também tentamos criar/atualizar a linha em `profiles` para facilitar futuros envios/encomendas.

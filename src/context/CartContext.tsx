@@ -9,6 +9,7 @@ interface CartItem {
   price: number;
   final_price: number;
   quantity: number;
+  stock: number;
   selectedVariants: Record<string, string>;
 }
 
@@ -61,13 +62,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       );
 
       if (existingItemIndex > -1) {
-        // Update quantity of existing item
+        // Update quantity of existing item, but don't exceed stock
         const updatedItems = [...prevItems];
-        updatedItems[existingItemIndex].quantity += newItem.quantity;
+        const currentItem = updatedItems[existingItemIndex];
+        const newQuantity = Math.min(
+          currentItem.quantity + newItem.quantity,
+          currentItem.stock
+        );
+        updatedItems[existingItemIndex].quantity = newQuantity;
         return updatedItems;
       } else {
-        // Add new item
-        return [...prevItems, newItem];
+        // Add new item, ensuring quantity doesn't exceed stock
+        return [...prevItems, { ...newItem, quantity: Math.min(newItem.quantity, newItem.stock) }];
       }
     });
   };
@@ -90,7 +96,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prevItems) =>
       prevItems.map((item) =>
         item.id === id && JSON.stringify(item.selectedVariants) === JSON.stringify(variants)
-          ? { ...item, quantity }
+          ? { ...item, quantity: Math.min(quantity, item.stock) }
           : item
       )
     );

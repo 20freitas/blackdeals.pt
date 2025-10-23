@@ -92,6 +92,7 @@ export default function ProductPage() {
       price: product.price,
       final_price: product.final_price,
       quantity: quantity,
+      stock: product.stock,
       selectedVariants: selectedVariants,
     });
 

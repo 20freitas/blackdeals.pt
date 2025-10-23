@@ -126,7 +126,7 @@ export default function CarrinhoPage() {
                                 item.quantity - 1
                               )
                             }
-                            className="w-8 h-8 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100"
+                            className="w-8 h-8 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Minus className="h-4 w-4" />
                           </button>
@@ -141,10 +141,16 @@ export default function CarrinhoPage() {
                                 item.quantity + 1
                               )
                             }
-                            className="w-8 h-8 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100"
+                            disabled={item.quantity >= item.stock}
+                            className="w-8 h-8 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Plus className="h-4 w-4" />
                           </button>
+                          {item.quantity >= item.stock && (
+                            <span className="text-xs text-red-600 ml-2">
+                              Stock máximo
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
