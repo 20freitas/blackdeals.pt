@@ -16,6 +16,8 @@ interface Order {
   total: number;
   status: string;
   created_at: string;
+  tracking_code?: string | null;
+  carrier?: string | null;
   order_items: Array<{
     quantity: number;
     products: {
@@ -89,6 +91,8 @@ export default function PerfilPage() {
       .from("orders")
       .select(`
         *,
+        tracking_code,
+        carrier,
         order_items (
           quantity,
           products (
@@ -437,6 +441,21 @@ export default function PerfilPage() {
                               {statusInfo.label}
                             </span>
                           </div>
+                          {/* Dados de rastreio visíveis no cartão */}
+                          {(order.tracking_code || order.carrier) && (
+                            <div className="mb-1 mt-1 flex flex-col gap-0.5">
+                              {order.carrier && (
+                                <span className="text-[15px] text-gray-500">
+                                  <span className="font-medium text-gray-600">Transportadora:</span> <span className="font-semibold text-gray-800">{order.carrier}</span>
+                                </span>
+                              )}
+                              {order.tracking_code && (
+                                <span className="text-[15px] text-gray-500">
+                                  <span className="font-medium text-gray-600">Número de Tracking:</span> <span className="font-mono font-semibold text-gray-800">{order.tracking_code}</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
                           <div className="text-sm text-gray-600">
                             {new Date(order.created_at).toLocaleDateString(
                               "pt-PT",

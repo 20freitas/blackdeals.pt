@@ -32,6 +32,8 @@ interface Order {
   shipping_address: string;
   shipping_city: string;
   shipping_postal_code: string;
+  tracking_code?: string | null;
+  carrier?: string | null;
   order_items: Array<{
     quantity: number;
     price: number;
@@ -51,8 +53,11 @@ export default function EncomendasPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [trackingInputs, setTrackingInputs] = useState<Record<string, { tracking_code: string; carrier: string }>>({});
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -96,11 +101,45 @@ export default function EncomendasPage() {
 
       if (error) throw error;
       setOrders(data || []);
+
+      // Initialize tracking inputs map
+      const map: Record<string, { tracking_code: string; carrier: string }> = {};
+      (data || []).forEach((o: any) => {
+        map[o.id] = { tracking_code: o.tracking_code || "", carrier: o.carrier || "CTT" };
+      });
+      setTrackingInputs(map);
     } catch (error) {
       console.error("Error fetching orders:", error);
       setToast({ message: "Erro ao carregar encomendas", type: "error" });
     } finally {
       setLoadingOrders(false);
+    }
+  };
+
+  const updateOrderWithTracking = async (
+    orderId: string,
+    newStatus: string,
+    tracking_code: string | null,
+    carrier: string | null
+  ) => {
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ status: newStatus, tracking_code, carrier, updated_at: new Date().toISOString() })
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      setOrders(
+        orders.map((order) =>
+          order.id === orderId ? { ...order, status: newStatus, tracking_code, carrier } : order
+        )
+      );
+
+      setToast({ message: "Encomenda atualizada com sucesso!", type: "success" });
+    } catch (error) {
+      console.error("Error updating order with tracking:", error);
+      setToast({ message: "Erro ao atualizar encomenda", type: "error" });
     }
   };
 
@@ -208,6 +247,7 @@ export default function EncomendasPage() {
   }
 
   const stats = getOrderStats();
+  const activeOrder = activeOrderId ? orders.find((o) => o.id === activeOrderId) || null : null;
 
   return (
     <DashboardLayout>
@@ -380,22 +420,31 @@ export default function EncomendasPage() {
                             <div className="text-xs text-gray-500 mb-1">
                               Estado
                             </div>
-                            <span
-                              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${statusInfo.badgeColor}`}
-                            >
-                              <StatusIcon className="h-4 w-4" />
-                              {statusInfo.label}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${statusInfo.badgeColor}`}
+                              >
+                                <StatusIcon className="h-4 w-4" />
+                                {statusInfo.label}
+                              </span>
+                              {order.tracking_code && (
+                                <span className="ml-2 text-xs font-mono px-2 py-1 bg-gray-100 rounded text-gray-700">
+                                  {order.tracking_code}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
                         {/* Expand Icon */}
                         <div className="ml-4">
-                          {isExpanded ? (
-                            <ChevronUp className="h-5 w-5 text-gray-400" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5 text-gray-400" />
-                          )}
+                          <div className="flex items-center gap-2">
+                            {isExpanded ? (
+                              <ChevronUp className="h-5 w-5 text-gray-400" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-gray-400" />
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -450,18 +499,39 @@ export default function EncomendasPage() {
 
                             {/* Shipping Info */}
                             <div>
-                              <h4 className="font-semibold mb-2">
-                                Morada de Envio
-                              </h4>
-                              <div className="text-sm text-gray-700 space-y-1">
-                                <div>{order.shipping_name}</div>
-                                <div>{order.shipping_phone}</div>
-                                <div>{order.shipping_address}</div>
-                                <div>
-                                  {order.shipping_postal_code}{" "}
-                                  {order.shipping_city}
+                                <div className="flex items-center justify-between mb-2">
+                                  <h4 className="font-semibold">Morada de Envio</h4>
                                 </div>
-                              </div>
+
+                                <div className="text-sm text-gray-700 space-y-1">
+                                  <div>{order.shipping_name}</div>
+                                  <div>{order.shipping_phone}</div>
+                                  <div>{order.shipping_address}</div>
+                                  <div>
+                                    {order.shipping_postal_code}{" "}
+                                    {order.shipping_city}
+                                  </div>
+                                  {/* Bloco de rastreio - design melhorado */}
+                                  {(order.tracking_code || order.carrier) && (
+                                    <div className="mt-5 p-5 rounded-2xl bg-white border border-gray-100 shadow-sm flex flex-col gap-2">
+                                      <div className="font-bold text-gray-800 text-base mb-1 tracking-tight">Rastreio</div>
+                                      <div className="flex flex-col gap-1 pl-1">
+                                        {order.carrier && (
+                                          <div className="text-[15px] text-gray-500 flex gap-1">
+                                            <span className="min-w-[110px] font-medium text-gray-600">Transportadora:</span>
+                                            <span className="font-semibold text-gray-800">{order.carrier}</span>
+                                          </div>
+                                        )}
+                                        {order.tracking_code && (
+                                          <div className="text-[15px] text-gray-500 flex gap-1">
+                                            <span className="min-w-[110px] font-medium text-gray-600">Número:</span>
+                                            <span className="font-mono font-semibold text-gray-800">{order.tracking_code}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                             </div>
                           </div>
 
@@ -470,6 +540,21 @@ export default function EncomendasPage() {
                             <h4 className="font-semibold mb-3">
                               Alterar Estado
                             </h4>
+                            <div className="flex items-center justify-between mb-3">
+                              <div></div>
+                              <div>
+                                <button
+                                  onClick={() => {
+                                    setActiveOrderId(order.id);
+                                    setShowTrackingModal(true);
+                                    setTrackingInputs((s) => ({ ...(s || {}), [order.id]: s[order.id] || { tracking_code: order.tracking_code || "", carrier: order.carrier || "CTT" } }));
+                                  }}
+                                  className="px-3 py-2 bg-white border border-gray-200 rounded-md text-sm text-gray-700 hover:bg-gray-50"
+                                >
+                                  Editar Rastreio
+                                </button>
+                              </div>
+                            </div>
                             <div className="space-y-2">
                               {[
                                 "pending",
@@ -503,6 +588,9 @@ export default function EncomendasPage() {
                                 );
                               })}
                             </div>
+
+                            {/* Tracking form */}
+                            {/* ...removido bloco de inputs de rastreio... */}
                           </div>
                         </div>
                       </div>
@@ -514,6 +602,70 @@ export default function EncomendasPage() {
           )}
         </div>
       </div>
+      {/* Tracking Modal */}
+      {showTrackingModal && activeOrderId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Editar Rastreio — {activeOrder?.order_code}</h3>
+              <button onClick={() => { setShowTrackingModal(false); setActiveOrderId(null); }} className="text-gray-500">Fechar</button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm text-gray-600">Transportadora</div>
+                <select
+                  value={trackingInputs[activeOrderId!]?.carrier || "CTT"}
+                  onChange={(e) => setTrackingInputs(s => ({ ...s, [activeOrderId!]: { ...(s[activeOrderId!] || { tracking_code: "", carrier: "CTT" }), carrier: e.target.value } }))}
+                  className="w-full border px-3 py-2 rounded-md mt-1"
+                >
+                  <option value="CTT">CTT</option>
+                  <option value="MRW">MRW</option>
+                  <option value="DHL">DHL</option>
+                  <option value="UPS">UPS</option>
+                  <option value="Outra">Outra</option>
+                </select>
+              </div>
+
+              <div>
+                <div className="text-sm text-gray-600">Número de Rastreio</div>
+                <input
+                  type="text"
+                  value={trackingInputs[activeOrderId!]?.tracking_code || ""}
+                  onChange={(e) => setTrackingInputs(s => ({ ...s, [activeOrderId!]: { ...(s[activeOrderId!] || { tracking_code: "", carrier: "CTT" }), tracking_code: e.target.value } }))}
+                  className="w-full border px-3 py-2 rounded-md mt-1"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => {
+                    const vals = trackingInputs[activeOrderId!] || { tracking_code: "", carrier: "CTT" };
+                    // Use current order.status so we don't change status unintentionally
+                    const currentStatus = activeOrder?.status || "pending";
+                    updateOrderWithTracking(activeOrderId!, currentStatus, vals.tracking_code || null, vals.carrier || null);
+                    setShowTrackingModal(false);
+                    setActiveOrderId(null);
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md"
+                >
+                  Guardar
+                </button>
+
+                <button onClick={() => { setShowTrackingModal(false); setActiveOrderId(null); }} className="bg-white border px-4 py-2 rounded-md">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
+
+// Tracking Modal (rendered conditionally inside this file scope)
+// We'll render it as a portal-like overlay when `showTrackingModal` is true.
+// This block is still inside the module but outside the component's JSX; we need
+// to export a small helper render function to actually inject it. Simpler approach:
+// we'll append the modal JSX at the end of the component instead of outside —
+// modify above to include modal conditionally. (No change here — modal is rendered via state inside the component.)
+

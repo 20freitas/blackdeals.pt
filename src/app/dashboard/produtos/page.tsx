@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Package, Plus, Edit, Trash2, X, Search } from "lucide-react";
+import Toast from "@/components/Toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,11 @@ export default function ProdutosPage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
+  const [ordersForProduct, setOrdersForProduct] = useState<any[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersTrackingInputs, setOrdersTrackingInputs] = useState<Record<string, { tracking_code: string; carrier: string }>>({});
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   // Form state
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -230,6 +236,71 @@ export default function ProdutosPage() {
     });
     setVariants(product.variants || []);
     setShowForm(true);
+  };
+
+  const openOrdersForProduct = async (productId: string) => {
+    setShowOrdersModal(true);
+    setOrdersLoading(true);
+    try {
+      // First get distinct order_ids that include this product
+      const { data: items, error: itemsError } = await supabase
+        .from("order_items")
+        .select("order_id")
+        .eq("product_id", productId);
+
+      if (itemsError) throw itemsError;
+
+      const orderIds = Array.from(new Set((items || []).map((r: any) => r.order_id))).filter(Boolean);
+
+      if (orderIds.length === 0) {
+        setOrdersForProduct([]);
+        setOrdersTrackingInputs({});
+        return;
+      }
+
+      // Now fetch the orders by id
+      const { data: ordersData, error: ordersError } = await supabase
+        .from("orders")
+        .select("*")
+        .in("id", orderIds)
+        .order("created_at", { ascending: false });
+
+      if (ordersError) throw ordersError;
+
+      const orders = ordersData || [];
+      setOrdersForProduct(orders);
+
+      // init tracking inputs
+      const map: Record<string, { tracking_code: string; carrier: string }> = {};
+      orders.forEach((o: any) => {
+        map[o.id] = { tracking_code: o.tracking_code || "", carrier: o.carrier || "CTT" };
+      });
+      setOrdersTrackingInputs(map);
+    } catch (err) {
+      console.error("Erro ao carregar encomendas do produto:", err);
+      setToast({ message: "Erro ao carregar encomendas", type: "error" });
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  const saveOrderTracking = async (orderId: string) => {
+    const vals = ordersTrackingInputs[orderId] || { tracking_code: "", carrier: "CTT" };
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ tracking_code: vals.tracking_code || null, carrier: vals.carrier || null, updated_at: new Date().toISOString() })
+        .eq("id", orderId);
+
+      if (error) throw error;
+
+      setToast({ message: "Rastreio guardado", type: "success" });
+      // update local list
+      setOrdersForProduct((s) => s.map(o => o.id === orderId ? { ...o, tracking_code: vals.tracking_code, carrier: vals.carrier } : o));
+    } catch (err) {
+      console.error(err);
+      setToast({ message: "Erro ao guardar rastreio", type: "error" });
+    }
   };
 
   const resetForm = () => {
@@ -719,6 +790,13 @@ export default function ProdutosPage() {
                         <Edit className="h-5 w-5" />
                       </button>
                       <button
+                        onClick={() => openOrdersForProduct(product.id)}
+                        className="p-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all"
+                        title="Ver encomendas deste produto"
+                      >
+                        <Package className="h-5 w-5" />
+                      </button>
+                      <button
                         onClick={() => handleDelete(product.id)}
                         className="p-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all"
                         title="Eliminar produto"
@@ -732,7 +810,71 @@ export default function ProdutosPage() {
             </div>
           )}
         </div>
-      </div>
-    </DashboardLayout>
-  );
-}
+        </div>
+
+        {showOrdersModal && (
+          <>
+            {toast && (
+              <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+            )}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+              <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-auto p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">Encomendas com este produto</h2>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => { setShowOrdersModal(false); setOrdersForProduct([]); }} className="bg-white border px-3 py-2 rounded-md">Fechar</button>
+                  </div>
+                </div>
+
+                {ordersLoading ? (
+                  <div className="text-center p-8">A carregar...</div>
+                ) : ordersForProduct.length === 0 ? (
+                  <div className="text-center p-8">Nenhuma encomenda encontrada para este produto.</div>
+                ) : (
+                  <div className="space-y-4">
+                    {ordersForProduct.map((o) => (
+                      <div key={o.id} className="border rounded-lg p-4 flex items-start justify-between">
+                        <div>
+                          <div className="text-xs text-gray-500">Código</div>
+                          <div className="font-semibold mb-2">{o.order_code}</div>
+                          <div className="text-sm text-gray-700">{o.shipping_name} • {o.total?.toFixed?.(2)} €</div>
+                          <div className="text-sm text-gray-500">Estado: {o.status}</div>
+                        </div>
+
+                        <div className="w-80">
+                          <select
+                            value={ordersTrackingInputs[o.id]?.carrier || "CTT"}
+                            onChange={(e) => setOrdersTrackingInputs(s => ({ ...s, [o.id]: { ...(s[o.id] || { tracking_code: "", carrier: "CTT" }), carrier: e.target.value } }))}
+                            className="w-full border px-3 py-2 rounded-md mb-2 bg-white"
+                          >
+                            <option value="CTT">CTT</option>
+                            <option value="MRW">MRW</option>
+                            <option value="DHL">DHL</option>
+                            <option value="UPS">UPS</option>
+                            <option value="Outra">Outra</option>
+                          </select>
+
+                          <input
+                            type="text"
+                            placeholder="Número de rastreio"
+                            value={ordersTrackingInputs[o.id]?.tracking_code || ""}
+                            onChange={(e) => setOrdersTrackingInputs(s => ({ ...s, [o.id]: { ...(s[o.id] || { tracking_code: "", carrier: "CTT" }), tracking_code: e.target.value } }))}
+                            className="w-full border px-3 py-2 rounded-md mb-2"
+                          />
+
+                          <div className="flex gap-2">
+                            <button onClick={() => saveOrderTracking(o.id)} className="bg-blue-600 text-white px-3 py-2 rounded-md flex-1">Guardar</button>
+                            <a href={`/dashboard/encomendas`} className="bg-white border px-3 py-2 rounded-md text-center flex-1">Abrir Encomendas</a>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </DashboardLayout>
+    );
+  }

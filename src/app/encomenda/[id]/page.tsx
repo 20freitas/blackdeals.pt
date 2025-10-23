@@ -21,6 +21,8 @@ interface Order {
   shipping_postal_code: string;
   shipping_country: string;
   created_at: string;
+  tracking_code?: string | null;
+  carrier?: string | null;
 }
 
 interface OrderItem {
@@ -42,6 +44,7 @@ export default function OrderSuccessPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!authLoading) {
@@ -231,6 +234,45 @@ export default function OrderSuccessPage() {
               <p>✓ Entrega estimada: 24-48 horas úteis</p>
               <p>✓ Pagamento contra reembolso na entrega</p>
             </div>
+
+            {order?.tracking_code && (
+              <div className="mt-4 bg-white text-black p-4 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-600">Transportadora</div>
+                    <div className="font-semibold">{order.carrier || "CTT"}</div>
+                    <div className="text-sm text-gray-600 mt-2">Número de Rastreio</div>
+                    <div className="font-mono mt-1">{order.tracking_code}</div>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(order.tracking_code || "");
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 1500);
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      className="bg-black text-white px-4 py-2 rounded-md"
+                    >
+                      {copied ? "Copiado" : "Copiar"}
+                    </button>
+
+                    <a
+                      href={`https://www.google.com/search?q=${encodeURIComponent((order.carrier || "CTT") + " " + (order.tracking_code || ""))}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm underline"
+                    >
+                      Abrir rastreio
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Actions */}
