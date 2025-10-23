@@ -308,7 +308,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {reviews && reviews.length > 0 ? (
               reviews.map((rv, i) => (
-                <div key={i} className="bg-white rounded-2xl p-0 overflow-hidden shadow-sm">
+                <div key={i} className="rounded-2xl p-0 overflow-hidden">
                   {rv.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={rv.imageUrl} alt={`Review ${i + 1}`} className="w-full h-64 object-cover" />
@@ -319,7 +319,7 @@ export default function Home() {
               ))
             ) : (
               <>
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
+                <div className="rounded-2xl p-6">
                   <div className="flex items-center gap-1 mb-4">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -333,7 +333,7 @@ export default function Home() {
                 </div>
 
                 {/* Testimonial 2 */}
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
+                <div className="rounded-2xl p-6">
                   <div className="flex items-center gap-1 mb-4">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -347,7 +347,7 @@ export default function Home() {
                 </div>
 
                 {/* Testimonial 3 */}
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
+                <div className="rounded-2xl p-6">
                   <div className="flex items-center gap-1 mb-4">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />

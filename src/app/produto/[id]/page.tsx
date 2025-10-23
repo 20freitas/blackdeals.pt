@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Truck, Package, Shield, RefreshCw, Clock, ChevronDown } from "lucide-react";
+import { ShoppingCart, Truck, Package, Shield, RefreshCw, Clock, ChevronDown, Star } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import Toast from "@/components/Toast";
 
@@ -33,11 +33,63 @@ export default function ProductPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [showToast, setShowToast] = useState(false);
+  const [related, setRelated] = useState<Product[]>([]);
+  const [reviews, setReviews] = useState<Array<{ id?: number; imageUrl?: string }>>([]);
+  const STORAGE_KEY = "blackdeals_carousel_settings";
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await supabase.from("carousel_settings").select("*").eq("id", "main").single();
+        if (!error && data) {
+          let parsed: any = null;
+          if (data.settings) {
+            try {
+              parsed = JSON.parse(data.settings);
+            } catch (e) {
+              parsed = data.settings;
+            }
+          } else {
+            parsed = { reviews: data.reviews ?? [] };
+          }
+          setReviews(parsed.reviews ?? []);
+          return;
+        }
+      } catch (err) {
+        console.warn("Could not load reviews from Supabase, falling back to localStorage", err);
+      }
+
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setReviews(parsed.reviews ?? []);
+          return;
+        }
+      } catch (e) {
+        console.error("Failed to parse reviews from localStorage", e);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     if (params.id) {
       fetchProduct();
     }
+    // load some related / other products
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("products")
+          .select("id, name, image_url, final_price, price, discount, stock")
+          .gt("stock", 0)
+          .order("created_at", { ascending: false })
+          .limit(8);
+        if (data) setRelated(data as any);
+      } catch (e) {
+        console.warn("Failed to load related products", e);
+      }
+    })();
   }, [params.id]);
 
   const fetchProduct = async () => {
@@ -411,6 +463,97 @@ export default function ProductPage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Reviews Section (same as landing page) */}
+          <div className="py-12 bg-gray-50 mt-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Clientes Satisfeitos</h2>
+                <div className="flex items-center justify-center gap-1 mb-2">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-6 w-6 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+                <p className="text-lg text-gray-600">Milhares de clientes já confiam na BlackDeals</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {reviews && reviews.length > 0 ? (
+                  reviews.map((rv, i) => (
+                    <div key={i} className="rounded-2xl p-0 overflow-hidden">
+                      {rv.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={rv.imageUrl} alt={`Review ${i + 1}`} className="w-full h-64 object-cover" />
+                      ) : (
+                        <div className="p-6">Sem imagem</div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="rounded-2xl p-6">
+                      <div className="flex items-center gap-1 mb-4">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        ))}
+                      </div>
+                      <p className="text-gray-700 mb-4">"Excelente serviço! Recebi a encomenda super rápido e o produto é de óptima qualidade. Recomendo!"</p>
+                      <p className="font-semibold text-gray-900">Maria Silva</p>
+                      <p className="text-sm text-gray-500">Lisboa</p>
+                    </div>
+
+                    <div className="rounded-2xl p-6">
+                      <div className="flex items-center gap-1 mb-4">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        ))}
+                      </div>
+                      <p className="text-gray-700 mb-4">"Adorei os preços e a rapidez na entrega. Já fiz várias encomendas e nunca tive problemas."</p>
+                      <p className="font-semibold text-gray-900">João Santos</p>
+                      <p className="text-sm text-gray-500">Porto</p>
+                    </div>
+
+                    <div className="rounded-2xl p-6">
+                      <div className="flex items-center gap-1 mb-4">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        ))}
+                      </div>
+                      <p className="text-gray-700 mb-4">"Produtos com excelente relação qualidade-preço. Voltarei a comprar com certeza!"</p>
+                      <p className="font-semibold text-gray-900">Ana Costa</p>
+                      <p className="text-sm text-gray-500">Braga</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Products Section (below FAQ) */}
+          <div className="max-w-7xl mx-auto mt-12 sm:mt-16">
+            {related.length === 0 ? (
+              <div className="text-gray-500">Não foram encontrados outros produtos.</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {related.filter(p => p.id !== product?.id).slice(0,4).map((p) => (
+                  <a key={p.id} href={`/produto/${p.id}`} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition">
+                    <div className="relative aspect-square bg-gray-100">
+                      {p.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">Sem imagem</div>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <div className="font-semibold text-sm line-clamp-2">{p.name}</div>
+                      <div className="mt-2 text-black font-bold">€{p.final_price?.toFixed(2)}</div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
