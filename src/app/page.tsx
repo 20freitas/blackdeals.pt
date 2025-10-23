@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -16,11 +17,53 @@ import {
   Star
 } from "lucide-react";
 import HeroCarousel from "@/components/HeroCarousel";
+import { supabase } from "@/lib/supabase";
 // partners strip handled inline in this file
 
 export default function Home() {
   const router = useRouter();
   const { user } = useAuth();
+  const [reviews, setReviews] = useState<Array<{ id?: number; imageUrl?: string }>>([]);
+
+  const STORAGE_KEY = "blackdeals_carousel_settings";
+
+  useEffect(() => {
+    (async () => {
+      // try server first
+      try {
+        const { data, error } = await supabase.from("carousel_settings").select("*").eq("id", "main").single();
+        if (!error && data) {
+          let parsed: any = null;
+          if (data.settings) {
+            try {
+              parsed = JSON.parse(data.settings);
+            } catch (e) {
+              parsed = data.settings;
+            }
+          } else {
+            parsed = { reviews: data.reviews ?? [] };
+          }
+
+          setReviews(parsed.reviews ?? []);
+          return;
+        }
+      } catch (err) {
+        // fallback to localStorage
+        console.warn("Could not load reviews from Supabase, falling back to localStorage", err);
+      }
+
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setReviews(parsed.reviews ?? []);
+          return;
+        }
+      } catch (e) {
+        console.error("Failed to parse reviews from localStorage", e);
+      }
+    })();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -263,46 +306,61 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <p className="text-gray-700 mb-4">
-                "Excelente serviço! Recebi a encomenda super rápido e o produto é de óptima qualidade. Recomendo!"
-              </p>
-              <p className="font-semibold text-gray-900">Maria Silva</p>
-              <p className="text-sm text-gray-500">Lisboa</p>
-            </div>
+            {reviews && reviews.length > 0 ? (
+              reviews.map((rv, i) => (
+                <div key={i} className="bg-white rounded-2xl p-0 overflow-hidden shadow-sm">
+                  {rv.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={rv.imageUrl} alt={`Review ${i + 1}`} className="w-full h-64 object-cover" />
+                  ) : (
+                    <div className="p-6">Sem imagem</div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <>
+                <div className="bg-white rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-1 mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-gray-700 mb-4">
+                    "Excelente serviço! Recebi a encomenda super rápido e o produto é de óptima qualidade. Recomendo!"
+                  </p>
+                  <p className="font-semibold text-gray-900">Maria Silva</p>
+                  <p className="text-sm text-gray-500">Lisboa</p>
+                </div>
 
-            {/* Testimonial 2 */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <p className="text-gray-700 mb-4">
-                "Adorei os preços e a rapidez na entrega. Já fiz várias encomendas e nunca tive problemas."
-              </p>
-              <p className="font-semibold text-gray-900">João Santos</p>
-              <p className="text-sm text-gray-500">Porto</p>
-            </div>
+                {/* Testimonial 2 */}
+                <div className="bg-white rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-1 mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-gray-700 mb-4">
+                    "Adorei os preços e a rapidez na entrega. Já fiz várias encomendas e nunca tive problemas."
+                  </p>
+                  <p className="font-semibold text-gray-900">João Santos</p>
+                  <p className="text-sm text-gray-500">Porto</p>
+                </div>
 
-            {/* Testimonial 3 */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <p className="text-gray-700 mb-4">
-                "Produtos com excelente relação qualidade-preço. Voltarei a comprar com certeza!"
-              </p>
-              <p className="font-semibold text-gray-900">Ana Costa</p>
-              <p className="text-sm text-gray-500">Braga</p>
-            </div>
+                {/* Testimonial 3 */}
+                <div className="bg-white rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-1 mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-gray-700 mb-4">
+                    "Produtos com excelente relação qualidade-preço. Voltarei a comprar com certeza!"
+                  </p>
+                  <p className="font-semibold text-gray-900">Ana Costa</p>
+                  <p className="text-sm text-gray-500">Braga</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
