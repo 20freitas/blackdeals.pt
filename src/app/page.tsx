@@ -15,6 +15,7 @@ import {
   ArrowRight,
   Star
 } from "lucide-react";
+import HeroCarousel from "@/components/HeroCarousel";
 
 export default function Home() {
   const router = useRouter();
@@ -119,6 +120,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+  {/* Carousel Section (placeholder images 1080x1350) */}
+  <HeroCarousel />
 
       {/* Benefits Section */}
       <section className="py-20 bg-white">
