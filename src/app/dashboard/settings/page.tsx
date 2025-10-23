@@ -42,22 +42,63 @@ export default function SettingsPage() {
     })();
   }, []);
 
-  // Load saved settings from localStorage
+  // Load saved settings from Supabase (preferred) and fallback to localStorage
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
+    (async () => {
+      // try fetch from Supabase table 'carousel_settings' (row id = 'main')
       try {
-        const parsed = JSON.parse(raw);
-        setEnabled(parsed.enabled ?? true);
-        setSlidesCount(parsed.slidesCount ?? 5);
-        setSlides(parsed.slides ?? []);
-      } catch (e) {
-        console.error("Failed to parse carousel settings", e);
+        const { data, error } = await supabase.from("carousel_settings").select("*").eq("id", "main").single();
+        if (error) throw error;
+        if (data) {
+          // support two possible shapes: { settings: JSON } or flat columns
+          let parsed: any = null;
+          if (data.settings) {
+            try {
+              parsed = JSON.parse(data.settings);
+            } catch (e) {
+              parsed = data.settings;
+            }
+          } else {
+            parsed = {
+              enabled: data.enabled ?? true,
+              slidesCount: data.slides_count ?? 5,
+              slides: data.slides ?? [],
+            };
+          }
+
+          setEnabled(parsed.enabled ?? true);
+          setSlidesCount(parsed.slidesCount ?? 5);
+          setSlides(parsed.slides ?? []);
+          // mirror to localStorage for offline use
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          } catch (e) {
+            console.warn("Failed to mirror carousel settings to localStorage", e);
+          }
+          return;
+        }
+      } catch (err) {
+        // if Supabase fetch fails (table missing / permissions) fall back to localStorage
+        console.warn("Could not load carousel settings from Supabase, falling back to localStorage", err);
       }
-    } else {
+
+      // Fallback to localStorage
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setEnabled(parsed.enabled ?? true);
+          setSlidesCount(parsed.slidesCount ?? 5);
+          setSlides(parsed.slides ?? []);
+          return;
+        }
+      } catch (e) {
+        console.error("Failed to parse carousel settings from localStorage", e);
+      }
+
       // initialize empty slides
       setSlides(Array.from({ length: 5 }, (_, i) => ({ id: i + 1 })));
-    }
+    })();
   }, []);
 
   useEffect(() => {
@@ -97,9 +138,25 @@ export default function SettingsPage() {
 
   const save = async () => {
     const payload = { enabled, slidesCount, slides };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    setToast({ message: 'Definições guardadas', type: 'success' });
-    // Optionally: persist to Supabase table 'settings' (not created by default)
+
+    // always write local copy first
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch (e) {
+      console.warn("Failed to write carousel settings to localStorage", e);
+    }
+
+    // Try to persist to Supabase (upsert into 'carousel_settings' table)
+    try {
+  const row = { id: "main", settings: JSON.stringify(payload) };
+  const { data, error } = await supabase.from("carousel_settings").upsert([row]).select().single();
+      if (error) throw error;
+      setToast({ message: 'Definições guardadas no servidor', type: 'success' });
+      return;
+    } catch (err) {
+      console.warn('Failed to persist carousel settings to Supabase', err);
+      setToast({ message: 'Guardado localmente — erro ao gravar no servidor', type: 'error' });
+    }
   };
 
   const clear = () => {
