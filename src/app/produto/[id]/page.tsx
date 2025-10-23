@@ -142,7 +142,7 @@ export default function ProductPage() {
     },
     {
       question: "Quanto tempo demora a entrega?",
-      answer: "A entrega é feita em 24-48 horas após a confirmação do pedido. Se encomendar antes das 17:00, recebe no dia seguinte."
+      answer: "A entrega é feita em 24-48 horas após a confirmação do pedido. Se encomendar antes das 15:00, recebe no dia seguinte."
     },
     {
       question: "Qual é o custo de envio?",
@@ -319,7 +319,7 @@ export default function ProductPage() {
               </div>
 
               <div className="text-center text-xs sm:text-sm text-gray-600">
-                Encomende antes das 17:00 para receber amanhã
+                Encomende antes das 15:00 para receber amanhã
               </div>
 
               {/* Benefits Cards */}
