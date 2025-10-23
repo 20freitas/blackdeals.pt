@@ -25,9 +25,15 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
-      
+
+      <section className="py-8 md:py-12 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <HeroCarousel />
+        </div>
+      </section>
+
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-b from-gray-50 to-white py-20 md:py-32 overflow-hidden">
+      <section className="relative bg-gradient-to-b from-gray-50 to-white py-12 md:py-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left: Text Content */}
@@ -122,9 +128,7 @@ export default function Home() {
         </div>
       </section>
 
-    {/* Carousel Section (placeholder images 1080x1350) */}
-  <HeroCarousel />
-
+    
     {/* Benefits Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
