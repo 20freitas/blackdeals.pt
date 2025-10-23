@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Truck, Package, Shield, RefreshCw, Clock, ChevronDown } from "lucide-react";
+import { useCart } from "@/context/CartContext";
+import Toast from "@/components/Toast";
 
 interface Product {
   id: string;
@@ -24,10 +26,13 @@ interface Product {
 export default function ProductPage() {
   const params = useParams();
   const router = useRouter();
+  const { addToCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     if (params.id) {
@@ -75,6 +80,26 @@ export default function ProductPage() {
       ...prev,
       [variantName]: option,
     }));
+  };
+
+  const handleAddToCart = () => {
+    if (!product) return;
+
+    addToCart({
+      id: product.id,
+      name: product.name,
+      image_url: product.image_url,
+      price: product.price,
+      final_price: product.final_price,
+      quantity: quantity,
+      selectedVariants: selectedVariants,
+    });
+
+    // Show toast notification
+    setShowToast(true);
+    
+    // Reset quantity to 1 after adding
+    setQuantity(1);
   };
 
   const toggleFaq = (index: number) => {
@@ -146,6 +171,12 @@ export default function ProductPage() {
   return (
     <>
       <Navbar />
+      {showToast && (
+        <Toast
+          message="Produto adicionado ao carrinho!"
+          onClose={() => setShowToast(false)}
+        />
+      )}
       <div className="min-h-screen bg-white py-8">
         <div className="max-w-7xl mx-auto px-4">
           {/* Back Button */}
@@ -247,14 +278,40 @@ export default function ProductPage() {
                 </div>
               )}
 
-              {/* Add to Cart Button */}
-              <Button
-                size="lg"
-                className="w-full h-14 text-base font-bold bg-black hover:bg-gray-800"
-              >
-                <ShoppingCart className="h-5 w-5 mr-2" />
-                Adicionar ao Carrinho
-              </Button>
+              {/* Quantity Selector and Add to Cart */}
+              <div className="flex items-end gap-4">
+                {/* Quantity Selector */}
+                <div className="flex-shrink-0">
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Quantidade
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="w-10 h-10 border-2 border-gray-300 rounded font-bold text-xl hover:bg-gray-100"
+                    >
+                      -
+                    </button>
+                    <span className="text-xl font-bold w-12 text-center">{quantity}</span>
+                    <button
+                      onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                      className="w-10 h-10 border-2 border-gray-300 rounded font-bold text-xl hover:bg-gray-100"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {/* Add to Cart Button */}
+                <Button
+                  onClick={handleAddToCart}
+                  size="lg"
+                  className="flex-1 h-[42px] text-base font-bold bg-black hover:bg-gray-800"
+                >
+                  <ShoppingCart className="h-5 w-5 mr-2" />
+                  Adicionar ao Carrinho
+                </Button>
+              </div>
 
               <div className="text-center text-sm text-gray-600">
                 Encomende antes das 17:00 para receber amanhã

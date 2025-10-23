@@ -4,11 +4,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, User, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/context/CartContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function Navbar() {
   const { user, loading } = useAuth();
+  const { getTotalItems } = useCart();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -106,9 +108,14 @@ export default function Navbar() {
             )}
             <Link 
               href="/carrinho" 
-              className="hover:text-gray-600 transition-colors ml-2 p-2 hover:bg-gray-100 rounded-full"
+              className="hover:text-gray-600 transition-colors ml-2 p-2 hover:bg-gray-100 rounded-full relative"
             >
               <ShoppingCart className="h-5 w-5" />
+              {getTotalItems() > 0 && (
+                <span className="absolute -top-0 -right-0 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {getTotalItems()}
+                </span>
+              )}
             </Link>
           </div>
         </div>
