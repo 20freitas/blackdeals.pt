@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Users, Search, ChevronDown, ChevronUp, Mail, Phone, MapPin } from "lucide-react";
+import { Users, Search, ChevronDown, ChevronUp, Mail, Phone, MapPin, ShoppingBag, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +22,14 @@ interface Profile {
   created_at: string;
 }
 
+interface Order {
+  id: string;
+  order_code: string;
+  total: number;
+  status: string;
+  created_at: string;
+}
+
 export default function UtilizadoresPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -31,6 +39,8 @@ export default function UtilizadoresPage() {
   const [roleFilter, setRoleFilter] = useState<"all" | "user" | "admin">("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loadingProfiles, setLoadingProfiles] = useState(true);
+  const [userOrders, setUserOrders] = useState<Record<string, Order[]>>({});
+  const [loadingOrders, setLoadingOrders] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -92,6 +102,44 @@ export default function UtilizadoresPage() {
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
+  };
+
+  const loadUserOrders = async (userId: string) => {
+    // Se já carregamos as encomendas deste user, não carregar novamente
+    if (userOrders[userId]) return;
+
+    setLoadingOrders(userId);
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("id, order_code, total, status, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        setUserOrders(prev => ({ ...prev, [userId]: data }));
+      }
+    } catch (error) {
+      console.error("Error loading user orders:", error);
+    } finally {
+      setLoadingOrders(null);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { label: string; color: string }> = {
+      pending: { label: "Pendente", color: "bg-yellow-100 text-yellow-800" },
+      shipped: { label: "Enviada", color: "bg-blue-100 text-blue-800" },
+      delivered: { label: "Concluída", color: "bg-green-100 text-green-800" },
+      cancelled: { label: "Cancelada", color: "bg-red-100 text-red-800" },
+    };
+
+    const config = statusConfig[status] || { label: status, color: "bg-gray-100 text-gray-800" };
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
+        {config.label}
+      </span>
+    );
   };
 
   if (loading || loadingProfiles) {
@@ -208,45 +256,115 @@ export default function UtilizadoresPage() {
                   {/* Expanded Details */}
                   {expandedId === profile.id && (
                     <div className="px-4 pb-4 bg-gray-50 border-t border-gray-100">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                        <div className="space-y-3">
-                          <h3 className="font-semibold text-gray-900 mb-2">Informações de Contacto</h3>
-                          <div className="flex items-start gap-2">
-                            <Mail className="h-4 w-4 text-gray-400 mt-0.5" />
-                            <div>
-                              <p className="text-sm text-gray-500">Email</p>
-                              <p className="text-sm font-medium">{profile.email}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                        {/* Left: Contact & Address */}
+                        <div className="space-y-4">
+                          <div className="space-y-3">
+                            <h3 className="font-semibold text-gray-900 mb-2">Informações de Contacto</h3>
+                            <div className="flex items-start gap-2">
+                              <Mail className="h-4 w-4 text-gray-400 mt-0.5" />
+                              <div>
+                                <p className="text-sm text-gray-500">Email</p>
+                                <p className="text-sm font-medium">{profile.email}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <Phone className="h-4 w-4 text-gray-400 mt-0.5" />
+                              <div>
+                                <p className="text-sm text-gray-500">Telefone</p>
+                                <p className="text-sm font-medium">
+                                  {profile.phone || "Não fornecido"}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-start gap-2">
-                            <Phone className="h-4 w-4 text-gray-400 mt-0.5" />
-                            <div>
-                              <p className="text-sm text-gray-500">Telefone</p>
-                              <p className="text-sm font-medium">
-                                {profile.phone || "Não fornecido"}
-                              </p>
+
+                          <div className="space-y-3">
+                            <h3 className="font-semibold text-gray-900 mb-2">Morada</h3>
+                            <div className="flex items-start gap-2">
+                              <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                              <div>
+                                {profile.address ? (
+                                  <>
+                                    <p className="text-sm font-medium">{profile.address}</p>
+                                    <p className="text-sm text-gray-500">
+                                      {profile.postal_code && `${profile.postal_code} `}
+                                      {profile.city}
+                                    </p>
+                                  </>
+                                ) : (
+                                  <p className="text-sm text-gray-500">Morada não fornecida</p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
 
+                        {/* Right: Order History */}
                         <div className="space-y-3">
-                          <h3 className="font-semibold text-gray-900 mb-2">Morada</h3>
-                          <div className="flex items-start gap-2">
-                            <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                            <div>
-                              {profile.address ? (
-                                <>
-                                  <p className="text-sm font-medium">{profile.address}</p>
-                                  <p className="text-sm text-gray-500">
-                                    {profile.postal_code && `${profile.postal_code} `}
-                                    {profile.city}
-                                  </p>
-                                </>
-                              ) : (
-                                <p className="text-sm text-gray-500">Morada não fornecida</p>
-                              )}
-                            </div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                              <ShoppingBag className="h-4 w-4" />
+                              Histórico de Encomendas
+                            </h3>
+                            {!userOrders[profile.id] && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => loadUserOrders(profile.id)}
+                                disabled={loadingOrders === profile.id}
+                              >
+                                {loadingOrders === profile.id ? "A carregar..." : "Ver Encomendas"}
+                              </Button>
+                            )}
                           </div>
+
+                          {loadingOrders === profile.id ? (
+                            <div className="text-center py-8">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                            </div>
+                          ) : userOrders[profile.id] ? (
+                            userOrders[profile.id].length === 0 ? (
+                              <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
+                                <Package className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                                <p className="text-sm text-gray-500">
+                                  Ainda não fez nenhuma encomenda
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="space-y-2 max-h-96 overflow-y-auto">
+                                {userOrders[profile.id].map((order) => (
+                                  <div
+                                    key={order.id}
+                                    className="bg-white rounded-lg border border-gray-200 p-3 hover:border-gray-300 transition-colors cursor-pointer"
+                                    onClick={() => router.push(`/dashboard/encomendas`)}
+                                  >
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="font-mono text-sm font-bold">
+                                        {order.order_code}
+                                      </span>
+                                      {getStatusBadge(order.status)}
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs text-gray-600">
+                                      <span>
+                                        {new Date(order.created_at).toLocaleDateString("pt-PT")}
+                                      </span>
+                                      <span className="font-bold text-gray-900">
+                                        {order.total.toFixed(2)} €
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )
+                          ) : (
+                            <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
+                              <Package className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+                              <p className="text-sm text-gray-500 mb-3">
+                                Clica para ver o histórico
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
