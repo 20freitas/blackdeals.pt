@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingBag, Users, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, Users, Home, ChevronLeft, ChevronRight, Settings } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -34,6 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: "/dashboard/produtos", label: "Produtos", icon: Package },
     { href: "/dashboard/encomendas", label: "Encomendas", icon: ShoppingBag },
     { href: "/dashboard/utilizadores", label: "Utilizadores", icon: Users },
+    { href: "/dashboard/settings", label: "Definições", icon: Settings },
   ];
 
   return (
