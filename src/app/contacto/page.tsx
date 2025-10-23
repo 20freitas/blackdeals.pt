@@ -1,4 +1,5 @@
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { Mail, MessageCircle } from "lucide-react";
 
 export default function ContactoPage() {
@@ -50,6 +51,7 @@ export default function ContactoPage() {
           <p>Para questões urgentes, contacte-nos via WhatsApp.</p>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

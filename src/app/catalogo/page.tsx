@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { Package } from "lucide-react";
 import Link from "next/link";
 
@@ -52,6 +53,7 @@ export default function CatalogoPage() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
           </div>
         </main>
+        <Footer />
       </div>
     );
   }
@@ -148,6 +150,7 @@ export default function CatalogoPage() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }
