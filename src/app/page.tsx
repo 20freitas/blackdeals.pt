@@ -23,13 +23,24 @@ import { supabase } from "@/lib/supabase";
 export default function Home() {
   const router = useRouter();
   const { user } = useAuth();
-  const [reviews, setReviews] = useState<Array<{ id?: number; imageUrl?: string }>>([]);
+  const [reviews, setReviews] = useState<Array<{ id?: number; imageUrl?: string; author?: string; text?: string; rating?: number }>>([]);
 
   const STORAGE_KEY = "blackdeals_carousel_settings";
 
   useEffect(() => {
     (async () => {
-      // try server first
+      // Prefer localStorage first so updates made in the Settings are immediately visible
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setReviews(parsed.reviews ?? []);
+        }
+      } catch (e) {
+        console.error("Failed to parse reviews from localStorage", e);
+      }
+
+      // Then fetch server copy and override if available
       try {
         const { data, error } = await supabase.from("carousel_settings").select("*").eq("id", "main").single();
         if (!error && data) {
@@ -44,23 +55,10 @@ export default function Home() {
             parsed = { reviews: data.reviews ?? [] };
           }
 
-          setReviews(parsed.reviews ?? []);
-          return;
+          if (parsed.reviews) setReviews(parsed.reviews ?? []);
         }
       } catch (err) {
-        // fallback to localStorage
-        console.warn("Could not load reviews from Supabase, falling back to localStorage", err);
-      }
-
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          setReviews(parsed.reviews ?? []);
-          return;
-        }
-      } catch (e) {
-        console.error("Failed to parse reviews from localStorage", e);
+        console.warn("Could not load reviews from Supabase — using local data if present", err);
       }
     })();
   }, []);
@@ -308,13 +306,24 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {reviews && reviews.length > 0 ? (
               reviews.map((rv, i) => (
-                <div key={i} className="rounded-2xl p-0 overflow-hidden">
-                  {rv.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={rv.imageUrl} alt={`Review ${i + 1}`} className="w-full h-64 object-cover" />
-                  ) : (
-                    <div className="p-6">Sem imagem</div>
-                  )}
+                <div key={i} className="rounded-2xl overflow-hidden bg-white shadow-sm">
+                  <div className="relative">
+                    {rv.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={rv.imageUrl} alt={`Review ${i + 1}`} className="w-full h-64 object-cover rounded-t-2xl" />
+                    ) : (
+                      <div className="w-full h-64 flex items-center justify-center bg-gray-100 rounded-t-2xl">Sem imagem</div>
+                    )}
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      {[1,2,3,4,5].map((s) => (
+                        <Star key={s} className={`h-4 w-4 ${rv.rating && rv.rating >= s ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                      ))}
+                    </div>
+                    {rv.text ? <p className="text-gray-700 mb-4">{rv.text}</p> : <p className="text-gray-700 mb-4">Sem comentário</p>}
+                    {rv.author && <p className="font-semibold text-gray-900">{rv.author}</p>}
+                  </div>
                 </div>
               ))
             ) : (

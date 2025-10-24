@@ -16,6 +16,9 @@ type SlideConfig = {
 type ReviewConfig = {
   id: number;
   imageUrl?: string;
+  author?: string;
+  text?: string;
+  rating?: number; // 1-5
 };
 
 type FAQ = {
@@ -159,8 +162,8 @@ export default function SettingsPage() {
       const fileName = `review_${Date.now()}_${index}.${fileExt}`;
       const { data, error } = await supabase.storage.from('public').upload(fileName, file, { cacheControl: '3600', upsert: true });
       if (error) throw error;
-      const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${data.path}`;
-      setReviews((r) => r.map((rv, i) => i === index ? { ...rv, imageUrl: url } : rv));
+  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${data.path}`;
+  setReviews((r) => r.map((rv, i) => i === index ? { ...rv, imageUrl: url } : rv));
       setToast({ message: `Review carregada (imagem ${index + 1})`, type: 'success' });
       return;
     } catch (err) {
@@ -260,7 +263,7 @@ export default function SettingsPage() {
   };
 
   const addReview = () => {
-    setReviews(r => [...r, { id: r.length + 1 }]);
+    setReviews(r => [...r, { id: r.length + 1, author: '', text: '', rating: 5 }]);
   };
 
   // FAQ helpers
@@ -300,34 +303,61 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold">Reviews (imagens)</h2>
               <div className="flex items-center gap-3">
-                <button onClick={addReview} className="bg-white border px-3 py-2 rounded-md">Adicionar imagem</button>
+                <button onClick={addReview} className="bg-white border px-3 py-2 rounded-md">Adicionar review</button>
                 <button onClick={saveReviews} className="bg-black text-white px-3 py-2 rounded-md">Guardar reviews</button>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {reviews.length === 0 && (
-                <div className="text-sm text-gray-500 col-span-full">Sem imagens de reviews — estas imagens irão substituir a secção "Clientes Satisfeitos" na landing page.</div>
-              )}
+                {reviews.length === 0 && (
+                  <div className="text-sm text-gray-500 col-span-full">Sem reviews — adiciona imagens, texto e avaliação.</div>
+                )}
 
-              {reviews.map((rv, i) => (
-                <div key={rv.id} className="flex flex-col items-start bg-gray-50 p-4 rounded-lg shadow-sm">
-                  <div className="w-full h-44 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center mb-4">
-                    {rv.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={rv.imageUrl} alt={`Review ${i+1}`} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="text-xs text-gray-400">Sem imagem</div>
-                    )}
-                  </div>
+                {reviews.map((rv, i) => (
+                  <div key={rv.id} className="flex flex-col items-start bg-gray-50 p-4 rounded-lg shadow-sm">
+                    <div className="w-full h-44 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center mb-4">
+                      {rv.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={rv.imageUrl} alt={`Review ${i+1}`} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="text-xs text-gray-400">Sem imagem</div>
+                      )}
+                    </div>
 
-                  <div className="w-full flex items-center justify-between gap-3">
-                    <input id={`review-file-${i}`} type="file" accept="image/*" onChange={(e) => e.target.files && handleReviewFile(e.target.files[0], i)} className="hidden" />
-                    <label htmlFor={`review-file-${i}`} className="cursor-pointer bg-white border rounded-md px-3 py-2 text-sm hover:bg-gray-100">Carregar imagem</label>
-                    <button onClick={() => removeReview(i)} className="bg-white border px-3 py-2 rounded-md">Remover</button>
+                    <div className="w-full flex flex-col gap-2 mb-3">
+                      <div className="flex items-center gap-3">
+                        <input id={`review-file-${i}`} type="file" accept="image/*" onChange={(e) => e.target.files && handleReviewFile(e.target.files[0], i)} className="hidden" />
+                        <label htmlFor={`review-file-${i}`} className="cursor-pointer bg-white border rounded-md px-3 py-2 text-sm hover:bg-gray-100">Carregar imagem</label>
+                        <button onClick={() => removeReview(i)} className="bg-white border px-3 py-2 rounded-md">Remover</button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full">
+                        <input
+                          type="text"
+                          placeholder="Autor"
+                          value={rv.author || ''}
+                          onChange={(e) => setReviews(r => r.map((x, idx) => idx === i ? { ...x, author: e.target.value } : x))}
+                          className="w-full border px-3 py-2 rounded"
+                        />
+
+                        <div className="flex items-center gap-1 md:col-span-1">
+                          {[1,2,3,4,5].map((s) => (
+                            <button key={s} onClick={() => setReviews(r => r.map((x, idx) => idx === i ? { ...x, rating: s } : x))} className={`text-yellow-400 ${rv.rating && rv.rating >= s ? '' : 'opacity-40'}`} aria-label={`Set rating ${s}`}>
+                              ★
+                            </button>
+                          ))}
+                        </div>
+
+                        <textarea
+                          placeholder="Texto da review"
+                          value={rv.text || ''}
+                          onChange={(e) => setReviews(r => r.map((x, idx) => idx === i ? { ...x, text: e.target.value } : x))}
+                          className="w-full md:col-span-3 border px-3 py-2 rounded h-24"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
 
             <div className="text-sm text-gray-500">

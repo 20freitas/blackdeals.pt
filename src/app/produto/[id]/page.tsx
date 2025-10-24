@@ -36,7 +36,7 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1);
   const [showToast, setShowToast] = useState(false);
   const [related, setRelated] = useState<Product[]>([]);
-  const [reviews, setReviews] = useState<Array<{ id?: number; imageUrl?: string }>>([]);
+  const [reviews, setReviews] = useState<Array<{ id?: number; imageUrl?: string; author?: string; text?: string; rating?: number }>>([]);
   type FAQ = { question: string; answer: string };
   const DEFAULT_FAQS: FAQ[] = [
     {
@@ -512,17 +512,29 @@ export default function ProductPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {reviews && reviews.length > 0 ? (
-                  reviews.map((rv, i) => (
-                    <div key={i} className="rounded-2xl p-0 overflow-hidden">
-                      {rv.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={rv.imageUrl} alt={`Review ${i + 1}`} className="w-full h-64 object-cover" />
-                      ) : (
-                        <div className="p-6">Sem imagem</div>
-                      )}
-                    </div>
-                  ))
-                ) : (
+                    reviews.map((rv, i) => (
+                      <div key={i} className="rounded-2xl p-0 overflow-hidden bg-white">
+                        <div className="relative">
+                          {rv.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={rv.imageUrl} alt={`Review ${i + 1}`} className="w-full h-64 object-cover rounded-t-2xl" />
+                          ) : (
+                            <div className="w-full h-64 flex items-center justify-center bg-gray-100 rounded-t-2xl">Sem imagem</div>
+                          )}
+                          {/* decorative quote badge removed as requested */}
+                        </div>
+                        <div className="p-6">
+                          <div className="flex items-center gap-2 mb-3">
+                            {[1,2,3,4,5].map((s) => (
+                              <Star key={s} className={`h-4 w-4 ${rv.rating && rv.rating >= s ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                            ))}
+                          </div>
+                          {rv.text ? <p className="text-gray-700 mb-4">{rv.text}</p> : <p className="text-gray-700 mb-4">Sem comentário</p>}
+                          {rv.author && <p className="font-semibold text-gray-900">{rv.author}</p>}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
                   <>
                     <div className="rounded-2xl p-6">
                       <div className="flex items-center gap-1 mb-4">
