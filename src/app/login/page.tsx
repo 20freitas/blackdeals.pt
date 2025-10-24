@@ -53,12 +53,12 @@ function LoginForm() {
       if (signInError) throw signInError;
 
       if (data.session) {
-        // Se rememberMe estiver ativado, a sessão dura 30 dias
+        // Se rememberMe estiver ativado, a sessão é mantida indefinidamente (persistência localStorage)
         // Caso contrário, a sessão é apenas temporária (dura até fechar o browser)
         if (rememberMe) {
-          // Supabase já mantém a sessão por padrão
+          // Supabase já mantém a sessão indefinidamente por padrão
           // A sessão persiste no localStorage
-          console.log("Sessão mantida por 30 dias");
+          console.log("Sessão mantida indefinidamente");
         } else {
           // Para sessão temporária, vamos usar sessionStorage
           // Isso faz com que a sessão expire ao fechar o browser
@@ -137,7 +137,7 @@ function LoginForm() {
                 htmlFor="remember"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-gray-700"
               >
-                Manter sessão iniciada por 30 dias
+                Manter sessão iniciada
               </label>
             </div>
 
