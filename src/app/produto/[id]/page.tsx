@@ -376,7 +376,7 @@ export default function ProductPage() {
 
               {/* Benefits Cards */}
               <div className="space-y-2 sm:space-y-3 pt-2">
-                <div className="bg-black text-white p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+                <div className="bg-green-600 text-white p-3 sm:p-4 flex items-start gap-2 sm:gap-3 shadow-lg">
                   <Truck className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 mt-0.5" />
                   <div>
                     <div className="font-bold text-sm sm:text-base">Entrega expressa</div>
@@ -386,7 +386,7 @@ export default function ProductPage() {
                   </div>
                 </div>
 
-                <div className="bg-black text-white p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+                <div className="bg-green-600 text-white p-3 sm:p-4 flex items-start gap-2 sm:gap-3 shadow-lg">
                   <Shield className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 mt-0.5" />
                   <div>
                     <div className="font-bold text-sm sm:text-base">Pague ao receber</div>
@@ -396,7 +396,7 @@ export default function ProductPage() {
                   </div>
                 </div>
 
-                <div className="bg-black text-white p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+                <div className="bg-green-600 text-white p-3 sm:p-4 flex items-start gap-2 sm:gap-3 shadow-lg">
                   <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 mt-0.5" />
                   <div>
                     <div className="font-bold text-sm sm:text-base">Sem devoluções</div>
@@ -406,7 +406,7 @@ export default function ProductPage() {
                   </div>
                 </div>
                 {/* Nova frase/benefit card */}
-                <div className="bg-black text-white p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+                <div className="bg-green-600 text-white p-3 sm:p-4 flex items-start gap-2 sm:gap-3 shadow-lg">
                   <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 mt-0.5" />
                   <div>
                     <div className="font-bold text-sm sm:text-base">Pagamento contra reembolso</div>
