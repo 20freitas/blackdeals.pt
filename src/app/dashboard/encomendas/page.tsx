@@ -547,7 +547,7 @@ export default function EncomendasPage() {
                                   onClick={() => {
                                     setActiveOrderId(order.id);
                                     setShowTrackingModal(true);
-                                    setTrackingInputs((s) => ({ ...(s || {}), [order.id]: s[order.id] || { tracking_code: order.tracking_code || "", carrier: order.carrier || "CTT" } }));
+                                    setTrackingInputs((s) => ({ ...(s || {}), [order.id]: s[order.id] || { tracking_code: order.tracking_code || "", carrier: order.carrier || "" } }));
                                   }}
                                   className="px-3 py-2 bg-white border border-gray-200 rounded-md text-sm text-gray-700 hover:bg-gray-50"
                                 >
@@ -614,17 +614,13 @@ export default function EncomendasPage() {
             <div className="space-y-3">
               <div>
                 <div className="text-sm text-gray-600">Transportadora</div>
-                <select
-                  value={trackingInputs[activeOrderId!]?.carrier || "CTT"}
-                  onChange={(e) => setTrackingInputs(s => ({ ...s, [activeOrderId!]: { ...(s[activeOrderId!] || { tracking_code: "", carrier: "CTT" }), carrier: e.target.value } }))}
+                <input
+                  type="text"
+                  placeholder="Nome da transportadora"
+                  value={trackingInputs[activeOrderId!]?.carrier || ""}
+                  onChange={(e) => setTrackingInputs(s => ({ ...s, [activeOrderId!]: { ...(s[activeOrderId!] || { tracking_code: "", carrier: "" }), carrier: e.target.value } }))}
                   className="w-full border px-3 py-2 rounded-md mt-1"
-                >
-                  <option value="CTT">CTT</option>
-                  <option value="MRW">MRW</option>
-                  <option value="DHL">DHL</option>
-                  <option value="UPS">UPS</option>
-                  <option value="Outra">Outra</option>
-                </select>
+                />
               </div>
 
               <div>
