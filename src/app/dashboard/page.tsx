@@ -47,6 +47,7 @@ export default function DashboardPage() {
   const { user, loading } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [dateRange, setDateRange] = useState<string>("since_forever");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -65,13 +66,45 @@ export default function DashboardPage() {
     }
   }, [user, loading, router]);
 
-  const loadDashboardStats = async () => {
+  const loadDashboardStats = async (range: string = dateRange) => {
     setLoadingStats(true);
     try {
-      // Fetch orders
-      const { data: orders } = await supabase
+      // Determine date filter based on selected range
+      const now = new Date();
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+
+      if (range === "last_24h") {
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      } else if (range === "yesterday") {
+        const y = new Date(now);
+        y.setDate(now.getDate() - 1);
+        y.setHours(0, 0, 0, 0);
+        startDate = y;
+        const yEnd = new Date(y);
+        yEnd.setHours(23, 59, 59, 999);
+        endDate = yEnd;
+      } else if (range === "last_7d") {
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      } else if (range === "last_30d") {
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      } else {
+        startDate = null; // since forever
+      }
+
+      // Fetch orders with optional date filters
+      let ordersQuery: any = supabase
         .from("orders")
         .select("*, order_items(quantity, price, product_id, products(name, supplier_price))");
+
+      if (startDate) {
+        ordersQuery = ordersQuery.gte("created_at", startDate.toISOString());
+      }
+      if (endDate) {
+        ordersQuery = ordersQuery.lte("created_at", endDate.toISOString());
+      }
+
+      const { data: orders } = await ordersQuery;
 
       // Fetch products
       const { data: products } = await supabase
@@ -159,6 +192,12 @@ export default function DashboardPage() {
     }
   };
 
+  // reload when dateRange changes
+  useEffect(() => {
+    if (user) loadDashboardStats(dateRange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange]);
+
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; color: string }> = {
       pending: { label: "Pendente", color: "bg-yellow-100 text-yellow-800" },
@@ -194,8 +233,20 @@ export default function DashboardPage() {
             <LayoutDashboard className="h-8 w-8" />
             <h1 className="text-3xl font-bold">Dashboard</h1>
           </div>
-          <div className="text-sm text-gray-600">
-            Última atualização: {new Date().toLocaleTimeString("pt-PT")}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-600">
+              Última atualização: {new Date().toLocaleTimeString("pt-PT")}
+            </div>
+            <div>
+              <label className="text-sm text-gray-600 mr-2">Período:</label>
+              <select value={dateRange} onChange={(e) => setDateRange(e.target.value)} className="border px-2 py-1 rounded">
+                <option value="since_forever">Desde sempre</option>
+                <option value="last_24h">Último dia</option>
+                <option value="yesterday">Ontem</option>
+                <option value="last_7d">Última semana</option>
+                <option value="last_30d">Último mês</option>
+              </select>
+            </div>
           </div>
         </div>
 
