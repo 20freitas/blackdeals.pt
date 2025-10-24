@@ -37,10 +37,43 @@ export default function ProductPage() {
   const [showToast, setShowToast] = useState(false);
   const [related, setRelated] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Array<{ id?: number; imageUrl?: string }>>([]);
+  type FAQ = { question: string; answer: string };
+  const DEFAULT_FAQS: FAQ[] = [
+    {
+      question: "Como funciona o pagamento?",
+      answer: "Aceitamos pagamento contra reembolso. Pague apenas quando receber o produto em casa."
+    },
+    {
+      question: "Quanto tempo demora a entrega?",
+      answer: "A entrega é feita em 24-48 horas após a confirmação do pedido. Se encomendar antes das 15:00, recebe no dia seguinte."
+    },
+    {
+      question: "Qual é o custo de envio?",
+      answer: "O envio é totalmente gratuito para todas as encomendas em Portugal Continental."
+    },
+    {
+      question: "Posso devolver o produto?",
+      answer: "Não aceitamos devoluções. Por favor, verifique todos os detalhes do produto antes de finalizar a compra."
+    }
+  ];
+  const [faqs, setFaqs] = useState<FAQ[]>(DEFAULT_FAQS);
   const STORAGE_KEY = "blackdeals_carousel_settings";
 
   useEffect(() => {
     (async () => {
+      // First, try to load from localStorage so recent edits are immediately visible
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setReviews(parsed.reviews ?? []);
+          setFaqs(parsed.faqs ?? DEFAULT_FAQS);
+        }
+      } catch (e) {
+        console.error("Failed to parse reviews/faqs from localStorage", e);
+      }
+
+      // Then try to fetch the authoritative copy from Supabase and override if available
       try {
         const { data, error } = await supabase.from("carousel_settings").select("*").eq("id", "main").single();
         if (!error && data) {
@@ -52,24 +85,16 @@ export default function ProductPage() {
               parsed = data.settings;
             }
           } else {
-            parsed = { reviews: data.reviews ?? [] };
+            parsed = { reviews: data.reviews ?? [], faqs: [] };
           }
-          setReviews(parsed.reviews ?? []);
-          return;
+
+          // Only override if the server has explicit values, otherwise keep local values
+          if (parsed.reviews) setReviews(parsed.reviews ?? []);
+          if (parsed.faqs) setFaqs(parsed.faqs ?? DEFAULT_FAQS);
         }
       } catch (err) {
-        console.warn("Could not load reviews from Supabase, falling back to localStorage", err);
-      }
-
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          setReviews(parsed.reviews ?? []);
-          return;
-        }
-      } catch (e) {
-        console.error("Failed to parse reviews from localStorage", e);
+        // Keep local values if server fetch fails
+        console.warn("Could not load reviews/faqs from Supabase — using local data if present", err);
       }
     })();
   }, []);
@@ -191,24 +216,7 @@ export default function ProductPage() {
     return `${day}. ${months[date.getMonth()]}`;
   };
 
-  const faqs = [
-    {
-      question: "Como funciona o pagamento?",
-      answer: "Aceitamos pagamento contra reembolso. Pague apenas quando receber o produto em casa."
-    },
-    {
-      question: "Quanto tempo demora a entrega?",
-      answer: "A entrega é feita em 24-48 horas após a confirmação do pedido. Se encomendar antes das 15:00, recebe no dia seguinte."
-    },
-    {
-      question: "Qual é o custo de envio?",
-      answer: "O envio é totalmente gratuito para todas as encomendas em Portugal Continental."
-    },
-    {
-      question: "Posso devolver o produto?",
-      answer: "Não aceitamos devoluções. Por favor, verifique todos os detalhes do produto antes de finalizar a compra."
-    }
-  ];
+  
 
   if (loading) {
     return (

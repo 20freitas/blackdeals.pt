@@ -18,6 +18,11 @@ type ReviewConfig = {
   imageUrl?: string;
 };
 
+type FAQ = {
+  question: string;
+  answer: string;
+};
+
 const STORAGE_KEY = "blackdeals_carousel_settings";
 
 export default function SettingsPage() {
@@ -27,6 +32,7 @@ export default function SettingsPage() {
   const [slidesCount, setSlidesCount] = useState(5);
   const [slides, setSlides] = useState<SlideConfig[]>([]);
   const [reviews, setReviews] = useState<ReviewConfig[]>([]);
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [products, setProducts] = useState<Array<{ id: string; name: string }>>([]);
   const [toast, setToast] = useState<{ message: string; type?: 'success' | 'error' } | null>(null);
 
@@ -76,6 +82,7 @@ export default function SettingsPage() {
           setSlidesCount(parsed.slidesCount ?? 5);
           setSlides(parsed.slides ?? []);
           setReviews(parsed.reviews ?? []);
+          setFaqs(parsed.faqs ?? []);
           // mirror to localStorage for offline use
           try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
@@ -98,6 +105,7 @@ export default function SettingsPage() {
           setSlidesCount(parsed.slidesCount ?? 5);
           setSlides(parsed.slides ?? []);
           setReviews(parsed.reviews ?? []);
+          setFaqs(parsed.faqs ?? []);
           return;
         }
       } catch (e) {
@@ -170,7 +178,7 @@ export default function SettingsPage() {
   };
 
   const save = async () => {
-  const payload = { enabled, slidesCount, slides, reviews };
+  const payload = { enabled, slidesCount, slides, reviews, faqs };
 
     // always write local copy first
     try {
@@ -198,11 +206,12 @@ export default function SettingsPage() {
     setEnabled(true);
     setSlidesCount(5);
     setReviews([]);
+    setFaqs([]);
     setToast({ message: 'Definições repostas', type: 'success' });
   };
 
   const saveReviews = async () => {
-    const payload = { enabled, slidesCount, slides, reviews };
+    const payload = { enabled, slidesCount, slides, reviews, faqs };
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -222,6 +231,27 @@ export default function SettingsPage() {
     }
   };
 
+  const saveFaqs = async () => {
+    const payload = { enabled, slidesCount, slides, reviews, faqs };
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch (e) {
+      console.warn("Failed to write faqs to localStorage", e);
+    }
+
+    try {
+      const row = { id: "main", settings: JSON.stringify(payload) };
+      const { data, error } = await supabase.from("carousel_settings").upsert([row]).select().single();
+      if (error) throw error;
+      setToast({ message: 'FAQs guardadas no servidor', type: 'success' });
+      return;
+    } catch (err) {
+      console.warn('Failed to persist faqs to Supabase', err);
+      setToast({ message: 'FAQs guardadas localmente — erro ao gravar no servidor', type: 'error' });
+    }
+  };
+
   if (loading || !user) return null;
 
   const removeImage = (index: number) => {
@@ -231,6 +261,19 @@ export default function SettingsPage() {
 
   const addReview = () => {
     setReviews(r => [...r, { id: r.length + 1 }]);
+  };
+
+  // FAQ helpers
+  const addFaq = () => {
+    setFaqs((f) => [...f, { question: "", answer: "" }]);
+  };
+
+  const updateFaq = (index: number, q: Partial<FAQ>) => {
+    setFaqs((f) => f.map((item, i) => i === index ? { ...item, ...q } : item));
+  };
+
+  const removeFaq = (index: number) => {
+    setFaqs((f) => f.filter((_, i) => i !== index));
   };
 
   const removeReview = (index: number) => {
@@ -352,10 +395,56 @@ export default function SettingsPage() {
           <div className="text-sm text-gray-500">
             Nota: se escolheres 1 ou 2 imagens, a landing page ajustará automaticamente o layout para mostrar apenas essas imagens. Com 3+ será usado o efeito coverflow.
           </div>
+          {/* FAQ section removed from carousel card — rendered separately below */}
+
           <div className="flex items-center gap-3 mt-4">
             <button onClick={save} className="bg-black text-white px-4 py-2 rounded-md shadow">Guardar Carousel</button>
             <button onClick={clear} className="bg-white border px-4 py-2 rounded-md">Repor</button>
           </div>
+        </div>
+      </div>
+
+      {/* Separate FAQ management card */}
+      <div className="p-8">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Perguntas Frequentes (FAQ)</h2>
+            <div className="flex items-center gap-3">
+              <button onClick={addFaq} className="bg-white border px-3 py-2 rounded-md">Adicionar FAQ</button>
+              <button onClick={saveFaqs} className="bg-black text-white px-3 py-2 rounded-md">Guardar FAQs</button>
+            </div>
+          </div>
+
+          {faqs.length === 0 ? (
+            <div className="text-sm text-gray-500">Ainda não existem perguntas frequentes.</div>
+          ) : (
+            <div className="space-y-4">
+              {faqs.map((f, i) => (
+                <div key={i} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        placeholder="Pergunta"
+                        value={f.question}
+                        onChange={(e) => updateFaq(i, { question: e.target.value })}
+                        className="w-full border px-3 py-2 rounded mb-2"
+                      />
+                      <textarea
+                        placeholder="Resposta"
+                        value={f.answer}
+                        onChange={(e) => updateFaq(i, { answer: e.target.value })}
+                        className="w-full border px-3 py-2 rounded h-24"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <button onClick={() => removeFaq(i)} className="bg-white border px-3 py-2 rounded-md">Remover</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
