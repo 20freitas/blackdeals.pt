@@ -405,6 +405,16 @@ export default function ProductPage() {
                     </div>
                   </div>
                 </div>
+                {/* Nova frase/benefit card */}
+                <div className="bg-black text-white p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+                  <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-sm sm:text-base">Pagamento contra reembolso</div>
+                    <div className="text-xs sm:text-sm text-gray-300">
+                      Receba gratuitamente em 24/48 horas
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Timeline */}
