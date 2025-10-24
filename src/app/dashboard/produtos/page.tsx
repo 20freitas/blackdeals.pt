@@ -21,6 +21,7 @@ interface Product {
   name: string;
   description: string;
   image_url: string;
+  images?: string[];
   price: number;
   supplier_price: number;
   discount: number;
@@ -59,6 +60,7 @@ export default function ProdutosPage() {
     stock: "",
     available_units: "",
   });
+  const [images, setImages] = useState<string[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [newVariantName, setNewVariantName] = useState("");
   const [newVariantOption, setNewVariantOption] = useState("");
@@ -149,7 +151,10 @@ export default function ProdutosPage() {
       // Convert image to base64 for now (or upload to your preferred service)
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData({ ...formData, image_url: reader.result as string });
+        const url = reader.result as string;
+        setFormData({ ...formData, image_url: url });
+        // also set as first image in gallery
+        setImages((prev) => [url, ...prev.filter((x) => x !== url)]);
         setUploadingImage(false);
       };
       reader.onerror = () => {
@@ -161,6 +166,31 @@ export default function ProdutosPage() {
       console.error('Erro ao fazer upload:', error);
       alert('Erro ao fazer upload da imagem. Por favor, tente novamente.');
       setUploadingImage(false);
+    }
+  };
+
+  const handleAddGalleryImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione apenas ficheiros de imagem');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 5MB');
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const url = reader.result as string;
+        setImages((prev) => [...prev, url]);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Erro ao adicionar imagem de galeria:', err);
+      alert('Erro ao carregar a imagem');
     }
   };
 
@@ -178,7 +208,8 @@ export default function ProdutosPage() {
     const productData = {
       name: formData.name,
       description: formData.description,
-      image_url: formData.image_url,
+      image_url: images.length > 0 ? images[0] : formData.image_url,
+      images: images.length > 0 ? images : null,
       price: parseFloat(formData.price),
       supplier_price: parseFloat(formData.supplier_price) || null,
       discount: discount,
@@ -198,6 +229,31 @@ export default function ProdutosPage() {
       result = await supabase
         .from("products")
         .insert([productData]);
+    }
+
+    // If DB doesn't have `images` column, retry without images
+    if (result.error) {
+      const errMsg = String(result.error.message || result.error || "").toLowerCase();
+      // Common Supabase/Postgres error texts for missing column or schema cache
+      const looksLikeMissingImages = (
+        errMsg.includes("images") && (
+          errMsg.includes("column") ||
+          errMsg.includes("could not find") ||
+          errMsg.includes("schema cache") ||
+          errMsg.includes("does not exist")
+        )
+      );
+
+      if (looksLikeMissingImages || result.error?.code === '42703') {
+        // remove images and retry
+        const fallback = { ...productData } as any;
+        delete fallback.images;
+        if (editingProduct) {
+          result = await supabase.from("products").update(fallback).eq("id", editingProduct.id);
+        } else {
+          result = await supabase.from("products").insert([fallback]);
+        }
+      }
     }
 
     if (!result.error) {
@@ -234,6 +290,9 @@ export default function ProdutosPage() {
       stock: product.stock.toString(),
       available_units: product.available_units.toString(),
     });
+    // set images array if available
+    // @ts-ignore
+    setImages((product as any).images && Array.isArray((product as any).images) ? (product as any).images : (product.image_url ? [product.image_url] : []));
     setVariants(product.variants || []);
     setShowForm(true);
   };
@@ -314,6 +373,7 @@ export default function ProdutosPage() {
       stock: "",
       available_units: "",
     });
+    setImages([]);
     setVariants([]);
     setEditingProduct(null);
   };
@@ -463,52 +523,63 @@ export default function ProdutosPage() {
                     />
                   </div>
 
-                  {/* Image Upload */}
+                  {/* Primary Image (managed via Gallery) */}
                   <div>
-                    <Label className="text-sm font-medium text-gray-700">Imagem do Produto</Label>
+                    <Label className="text-sm font-medium text-gray-700">Imagem Principal</Label>
                     <div className="mt-1 flex items-center gap-4">
-                      {formData.image_url ? (
+                      {images.length > 0 ? (
                         <div className="relative">
                           <img
-                            src={formData.image_url}
-                            alt="Preview"
+                            src={images[0]}
+                            alt="Principal"
                             className="h-32 w-32 object-cover rounded-lg border-2 border-gray-200"
                             onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/128?text=Erro")}
                           />
-                          <button
-                            type="button"
-                            onClick={() => setFormData({ ...formData, image_url: "" })}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
                         </div>
                       ) : (
                         <div className="h-32 w-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
                           <Package className="h-12 w-12 text-gray-400" />
                         </div>
                       )}
-                      
+
                       <div className="flex-1">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          disabled={uploadingImage}
-                          className="hidden"
-                          id="image-upload"
-                        />
-                        <label
-                          htmlFor="image-upload"
-                          className={`inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer transition-colors ${
-                            uploadingImage ? "opacity-50 cursor-not-allowed" : ""
-                          }`}
-                        >
-                          {uploadingImage ? "A carregar..." : "Escolher imagem"}
-                        </label>
-                        <p className="mt-2 text-xs text-gray-500">
-                          PNG, JPG, GIF até 5MB
-                        </p>
+                        <p className="text-sm text-gray-600">Escolha imagens na secção "Galeria de Imagens" abaixo. A primeira imagem da galeria será usada como principal.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gallery Images */}
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Galeria de Imagens</Label>
+                    <div className="mt-2 space-y-2">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {images.length === 0 && (
+                          <div className="text-sm text-gray-500">Nenhuma imagem adicionada à galeria.</div>
+                        )}
+
+                        {images.map((img, idx) => (
+                          <div key={idx} className="relative">
+                            <img src={img} alt={`img-${idx}`} className={`h-20 w-20 object-cover rounded-md border ${idx === 0 ? 'border-black' : 'border-gray-200'}`} />
+                            <div className="flex gap-1 mt-1">
+                              {idx !== 0 && (
+                                <button type="button" onClick={() => setImages(prev => {
+                                  const next = [...prev];
+                                  // move this to first position
+                                  const [item] = next.splice(idx, 1);
+                                  next.unshift(item);
+                                  return next;
+                                })} className="text-xs px-2 py-1 bg-white border rounded">Tornar principal</button>
+                              )}
+                              <button type="button" onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))} className="text-xs px-2 py-1 bg-white border rounded">Remover</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-2">
+                        <input id="gallery-upload" type="file" accept="image/*" onChange={handleAddGalleryImage} className="hidden" />
+                        <label htmlFor="gallery-upload" className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer">Adicionar imagem à galeria</label>
+                        <p className="mt-1 text-xs text-gray-500">As imagens da galeria aparecem na página do produto. A primeira é usada como principal.</p>
                       </div>
                     </div>
                   </div>
@@ -721,9 +792,9 @@ export default function ProdutosPage() {
                   <div className="flex items-center gap-5">
                     {/* Image */}
                     <div className="flex-shrink-0">
-                      {product.image_url ? (
+                      {((product as any).images && (product as any).images[0]) || product.image_url ? (
                         <img
-                          src={product.image_url}
+                          src={((product as any).images && (product as any).images[0]) || product.image_url}
                           alt={product.name}
                           className="h-20 w-20 object-cover rounded-xl border-2 border-gray-200 shadow-sm"
                           onError={(e) => {

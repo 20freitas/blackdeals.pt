@@ -94,9 +94,9 @@ export default function CatalogoPage() {
               >
                 {/* Image Container */}
                 <div className="relative aspect-square overflow-hidden bg-gray-100">
-                  {product.image_url ? (
+                  {((product as any).images && (product as any).images[0]) || product.image_url ? (
                     <img
-                      src={product.image_url}
+                      src={((product as any).images && (product as any).images[0]) || product.image_url}
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 sm:group-hover:scale-110 transition-transform duration-500"
                       loading="lazy"

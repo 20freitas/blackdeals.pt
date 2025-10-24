@@ -14,6 +14,7 @@ interface Product {
   name: string;
   description: string;
   image_url: string;
+  images?: string[];
   price: number;
   supplier_price: number;
   discount: number;
@@ -28,6 +29,7 @@ export default function ProductPage() {
   const router = useRouter();
   const { addToCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -137,10 +139,12 @@ export default function ProductPage() {
   const handleAddToCart = () => {
     if (!product) return;
 
+    const mainImage = (product.images && product.images[selectedImageIndex]) || product.image_url;
+
     addToCart({
       id: product.id,
       name: product.name,
-      image_url: product.image_url,
+      image_url: mainImage,
       price: product.price,
       final_price: product.final_price,
       quantity: quantity,
@@ -245,11 +249,21 @@ export default function ProductPage() {
             <div className="space-y-4 sm:space-y-6">
               <div className="relative bg-gray-50 rounded-xl overflow-hidden">
                 <img
-                  src={product.image_url}
+                  src={(product.images && product.images[selectedImageIndex]) || product.image_url}
                   alt={product.name}
                   className="w-full h-auto object-contain"
                   loading="eager"
                 />
+                {/* Thumbnails */}
+                {product.images && product.images.length > 1 && (
+                  <div className="mt-3 flex items-center gap-2 overflow-x-auto">
+                    {product.images.map((img, i) => (
+                      <button key={i} onClick={() => setSelectedImageIndex(i)} className={`h-16 w-16 rounded-md overflow-hidden border ${i === selectedImageIndex ? 'border-black' : 'border-gray-200'}`}>
+                        <img src={img} alt={`thumb-${i}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               
               {/* Description */}
@@ -549,9 +563,9 @@ export default function ProductPage() {
                 {related.filter(p => p.id !== product?.id).slice(0,4).map((p) => (
                   <a key={p.id} href={`/produto/${p.id}`} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition">
                     <div className="relative aspect-square bg-gray-100">
-                      {p.image_url ? (
+                      {((p as any).images && (p as any).images[0]) || p.image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                        <img src={((p as any).images && (p as any).images[0]) || p.image_url} alt={p.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-400">Sem imagem</div>
                       )}
