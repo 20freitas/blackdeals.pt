@@ -167,12 +167,55 @@ export default function EncomendasPage() {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
+      // Get current order status from local state (fallback) or DB
+      const localOrder = orders.find((o) => o.id === orderId);
+      const prevStatus = localOrder?.status;
+
       const { error } = await supabase
         .from("orders")
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq("id", orderId);
 
       if (error) throw error;
+
+      // If changing to cancelled and previous status was not cancelled, restore stock
+      if (newStatus === "cancelled" && prevStatus !== "cancelled") {
+        const { data: orderItems, error: oiError } = await supabase
+          .from("order_items")
+          .select("product_id, quantity")
+          .eq("order_id", orderId);
+
+        if (!oiError && orderItems) {
+          for (const oi of orderItems) {
+            try {
+              const { data: prod, error: prodError } = await supabase
+                .from("products")
+                .select("stock")
+                .eq("id", oi.product_id)
+                .single();
+
+              if (prodError) {
+                console.error(`Erro ao obter produto ${oi.product_id}:`, prodError);
+                continue;
+              }
+
+              const currentStock = prod?.stock ?? 0;
+              const newStock = currentStock + (oi.quantity || 0);
+
+              const { error: updateErr } = await supabase
+                .from("products")
+                .update({ stock: newStock })
+                .eq("id", oi.product_id);
+
+              if (updateErr) {
+                console.error(`Erro ao repor stock do produto ${oi.product_id}:`, updateErr);
+              }
+            } catch (err) {
+              console.error(`Erro ao repor stock para item do pedido ${orderId}:`, err);
+            }
+          }
+        }
+      }
 
       // Update local state
       setOrders(

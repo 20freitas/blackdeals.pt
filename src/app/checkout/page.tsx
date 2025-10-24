@@ -205,6 +205,36 @@ export default function CheckoutPage() {
         throw new Error("Erro ao adicionar produtos à encomenda.");
       }
 
+      // Decrement stock for each product (fetch current stock and update)
+      for (const item of items) {
+        try {
+          const { data: productData, error: productError } = await supabase
+            .from("products")
+            .select("stock")
+            .eq("id", item.id)
+            .single();
+
+          if (productError) {
+            console.error(`Erro ao obter stock do produto ${item.id}:`, productError);
+            continue;
+          }
+
+          const currentStock = productData?.stock ?? 0;
+          const newStock = Math.max(0, currentStock - item.quantity);
+
+          const { error: stockUpdateError } = await supabase
+            .from("products")
+            .update({ stock: newStock })
+            .eq("id", item.id);
+
+          if (stockUpdateError) {
+            console.error(`Erro ao atualizar stock do produto ${item.id}:`, stockUpdateError);
+          }
+        } catch (err) {
+          console.error(`Erro ao processar stock do produto ${item.id}:`, err);
+        }
+      }
+
       // Clear cart
       clearCart();
 
