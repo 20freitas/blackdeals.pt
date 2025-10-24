@@ -48,12 +48,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     if (initialized.current) {
-      localStorage.setItem("cart", JSON.stringify(items));
+      // Limitar a 50 produtos e guardar só campos essenciais
+      const essentialItems = items.slice(0, 50).map(({ id, name, image_url, price, final_price, quantity, stock, selectedVariants }) => ({
+        id, name, image_url, price, final_price, quantity, stock, selectedVariants
+      }));
+      try {
+        localStorage.setItem("cart", JSON.stringify(essentialItems));
+      } catch (e) {
+        // Se falhar, mostra aviso e não crasha
+        console.error("Erro ao guardar carrinho no localStorage:", e);
+        // Opcional: alert("O carrinho está cheio ou demasiado grande. Remova alguns produtos para continuar.");
+      }
     }
   }, [items]);
 
   const addToCart = (newItem: CartItem) => {
     setItems((prevItems) => {
+      // Limitar o carrinho a 50 produtos
+      if (prevItems.length >= 50) {
+        // Opcional: alert("O carrinho está cheio. Remova produtos para adicionar mais.");
+        return prevItems;
+      }
       // Check if item with same id and variants already exists
       const existingItemIndex = prevItems.findIndex(
         (item) =>

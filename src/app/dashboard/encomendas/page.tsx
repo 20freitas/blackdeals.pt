@@ -524,7 +524,7 @@ export default function EncomendasPage() {
                                         )}
                                         {order.tracking_code && (
                                           <div className="text-[15px] text-gray-500 flex gap-1">
-                                            <span className="min-w-[110px] font-medium text-gray-600">Número:</span>
+                                            <span className="min-w-[110px] font-medium text-gray-600">Númeron:</span>
                                             <span className="font-mono font-semibold text-gray-800">{order.tracking_code}</span>
                                           </div>
                                         )}
