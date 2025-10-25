@@ -392,6 +392,17 @@ export default function ProductPage() {
                 </Button>
               </div>
 
+              {/* Quadrado preto pedido: ícone + texto centralizado */}
+              <div className="mt-4 flex justify-center">
+                <div className="bg-black text-white px-6 py-3 rounded-xl shadow-lg max-w-2xl w-full flex items-center justify-center gap-4">
+                  <ShoppingCart className="h-4 w-4 text-white flex-shrink-0" />
+                  <div className="text-center">
+                    <div className="font-semibold">Pagamento contra reembolso</div>
+                    <div className="text-sm">Receba gratuitamente em 24/48 horas</div>
+                  </div>
+                </div>
+              </div>
+
               <div className="text-center text-xs sm:text-sm text-gray-600">
                 Encomende antes das 15:00 para receber amanhã
               </div>
@@ -431,9 +442,9 @@ export default function ProductPage() {
                 <div className="bg-green-600 text-white p-3 sm:p-4 flex items-start gap-2 sm:gap-3 shadow-lg">
                   <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 mt-0.5" />
                   <div>
-                    <div className="font-bold text-sm sm:text-base">Pagamento contra reembolso</div>
+                    <div className="font-bold text-sm sm:text-base">Devoluções simplificadas</div>
                     <div className="text-xs sm:text-sm text-gray-300">
-                      Receba gratuitamente em 24/48 horas
+                      Se o artigo estiver danificado, devolva-o.
                     </div>
                   </div>
                 </div>
