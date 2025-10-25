@@ -1,14 +1,35 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function CarrinhoPage() {
   const { items, updateQuantity, removeFromCart, getTotalPrice } = useCart();
   const router = useRouter();
+
+  const [others, setOthers] = useState<any[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("products")
+          .select("id, name, image_url, images, final_price, price, discount, stock")
+          .gt("stock", 0)
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        if (data) setOthers(data as any[]);
+      } catch (e) {
+        console.warn("Failed to load related products for cart page", e);
+      }
+    })();
+  }, []);
 
   const getTotalSavings = () => {
     return items.reduce((total, item) => {
@@ -225,6 +246,31 @@ export default function CarrinhoPage() {
               </div>
             </div>
           </div>
+
+          {/* Outros clientes também compram - produtos relacionados (limit 5) */}
+          {others.length > 0 && (
+            <div className="mt-12">
+              <h2 className="text-2xl font-bold mb-4">Outros clientes também compram</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                {others.map((p) => (
+                  <a key={p.id} href={`/produto/${p.id}`} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition">
+                    <div className="relative aspect-square bg-gray-100">
+                      {((p.images && p.images[0]) || p.image_url) ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={(p.images && p.images[0]) || p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">Sem imagem</div>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <div className="font-semibold text-sm line-clamp-2">{p.name}</div>
+                      <div className="mt-2 text-black font-bold">€{p.final_price?.toFixed(2)}</div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>
